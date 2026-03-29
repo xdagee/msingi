@@ -1,0 +1,490 @@
+[
+  {
+    "id": "user-authentication",
+    "name": "User Authentication",
+    "category": "auth",
+    "types": ["web-app", "fullstack", "api-service"],
+    "baseline": false,
+    "trigger": "auth|login|signup|sign.?in|register|jwt|oauth|session|password|user.?account|credential"
+  },
+  {
+    "id": "role-based-access",
+    "name": "Role-Based Access Control",
+    "category": "auth",
+    "types": ["web-app", "fullstack", "api-service"],
+    "baseline": false,
+    "trigger": "role|permission|admin|rbac|access.?control|privilege|authoris|authori[zs]"
+  },
+  {
+    "id": "api-key-management",
+    "name": "API Key Management",
+    "category": "auth",
+    "types": ["api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "api.?key|service.?account|machine.?to.?machine|m2m|client.?secret|token.?rotation"
+  },
+  {
+    "id": "android-auth",
+    "name": "Android Authentication",
+    "category": "auth",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "biometric|fingerprint|pin|keystore.*auth|android.*auth|credential.*manager|accountmanager"
+  },
+  {
+    "id": "database-crud",
+    "name": "Database Operations",
+    "category": "data",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "database|mysql|postgres|postgresql|sqlite|mongo|prisma|orm|crud|model|schema|migration|supabase|planetscale|neon"
+  },
+  {
+    "id": "file-storage",
+    "name": "File Storage & Retrieval",
+    "category": "data",
+    "types": ["web-app", "fullstack", "api-service"],
+    "baseline": false,
+    "trigger": "upload|file|storage|s3|blob|bucket|image|media|asset|attachment|cdn|object.?store"
+  },
+  {
+    "id": "caching",
+    "name": "Caching Layer",
+    "category": "data",
+    "types": ["web-app", "api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "cache|redis|memcache|ttl|invalidat|in.?memory|read.?through|write.?through"
+  },
+  {
+    "id": "search",
+    "name": "Search & Filtering",
+    "category": "data",
+    "types": ["web-app", "fullstack", "api-service"],
+    "baseline": false,
+    "trigger": "search|filter|query|elasticsearch|algolia|typesense|full.?text|facet|ranking"
+  },
+  {
+    "id": "room-local-db",
+    "name": "Room Local Database",
+    "category": "data",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "room|local.?db|local.?database|offline|sqlite.*android|dao\b|entity.*android"
+  },
+  {
+    "id": "data-sync",
+    "name": "Offline Data Sync",
+    "category": "data",
+    "types": ["android", "web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "offline|sync|conflict.*resolut|merge.*strategy|eventual.*consistency|optimistic.*update|workmanager"
+  },
+  {
+    "id": "vector-store",
+    "name": "Vector Store & Retrieval",
+    "category": "data",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "vector|embedding|semantic.*search|pgvector|pinecone|weaviate|chroma|faiss|rag\b|retrieval.?augmented"
+  },
+  {
+    "id": "feature-store",
+    "name": "Feature Store",
+    "category": "data",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "feature.?store|feast|tecton|feature.*engineer|feature.*pipeline|online.*feature|offline.*feature"
+  },
+  {
+    "id": "rest-api",
+    "name": "REST API Layer",
+    "category": "api",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "api|rest|endpoint|route|fastapi|express|flask|django|laravel|hono|nestjs|controller|resource"
+  },
+  {
+    "id": "api-versioning",
+    "name": "API Versioning",
+    "category": "api",
+    "types": ["api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "version|v1|v2|backward.*compat|breaking.*change|deprecat|sunset|api.*contract"
+  },
+  {
+    "id": "api-validation",
+    "name": "Input Validation",
+    "category": "api",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "validat|sanitiz|schema|zod|yup|pydantic|joi|form.?data|input.*check|request.*body"
+  },
+  {
+    "id": "error-handling",
+    "name": "Error Handling & Structured Logging",
+    "category": "api",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android"],
+    "baseline": true,
+    "trigger": "error|exception|log|logger|sentry|monitor|trace|debug|structured.*log|log.*level"
+  },
+  {
+    "id": "rate-limiting",
+    "name": "Rate Limiting & Throttling",
+    "category": "api",
+    "types": ["api-service", "web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "rate.?limit|throttl|quota|burst|concurrency.*limit|ddos|abuse.*prevent"
+  },
+  {
+    "id": "third-party-integration",
+    "name": "Third-Party Integration",
+    "category": "api",
+    "types": ["web-app", "api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "integrat|external.?api|payment|stripe|sendgrid|twilio|slack|zapier|hubspot|third.?party"
+  },
+  {
+    "id": "webhook-delivery",
+    "name": "Webhook Delivery",
+    "category": "api",
+    "types": ["api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "webhook|outbound.*event|event.*delivery|webhook.*retry|webhook.*signature|svix|hookdeck"
+  },
+  {
+    "id": "api-documentation",
+    "name": "API Documentation",
+    "category": "api",
+    "types": ["api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "openapi|swagger|redoc|api.?doc|spec.*generat|schema.*export|contract.*first"
+  },
+  {
+    "id": "graphql",
+    "name": "GraphQL API",
+    "category": "api",
+    "types": ["api-service", "fullstack", "web-app"],
+    "baseline": false,
+    "trigger": "graphql|apollo|relay|hasura|resolver|subscription.*graphql|mutation.*graphql"
+  },
+  {
+    "id": "service-health",
+    "name": "Health & Readiness Endpoints",
+    "category": "api",
+    "types": ["api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "health|readiness|liveness|probe|heartbeat|\/ready|\/health|\/ping|uptime"
+  },
+  {
+    "id": "cli-arg-parsing",
+    "name": "CLI Argument Parsing",
+    "category": "api",
+    "types": ["cli-tool"],
+    "baseline": true,
+    "trigger": "arg|flag|option|subcommand|commander|clap|click|cobra|argv|argparse|cli.*parse|command.?line|interactive.*prompt|wizard"
+  },
+  {
+    "id": "cli-output-formatting",
+    "name": "CLI Output Formatting",
+    "category": "api",
+    "types": ["cli-tool"],
+    "baseline": true,
+    "trigger": "colour|color|ansi|terminal|tty|spinner|progress.*bar|table.*output|json.*output|stdout|stderr|pretty.*print|human.?readable|machine.?readable"
+  },
+  {
+    "id": "cli-config-management",
+    "name": "CLI Configuration Management",
+    "category": "api",
+    "types": ["cli-tool"],
+    "baseline": true,
+    "trigger": "config.*file|dotfile|\\.config|settings.*file|user.*config|global.*config|local.*config|toml|yaml.*config|ini|profile.*config|persist.*setting"
+  },
+  {
+    "id": "ui-components",
+    "name": "UI Component System",
+    "category": "ui",
+    "types": ["web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "component|react|vue|svelte|tailwind|shadcn|design.?system|storybook|radix|headless.?ui"
+  },
+  {
+    "id": "forms",
+    "name": "Form Handling & Validation",
+    "category": "ui",
+    "types": ["web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "form|input|submit|formik|react.?hook.?form|react.*form|form.*validat"
+  },
+  {
+    "id": "data-visualisation",
+    "name": "Data Visualisation",
+    "category": "ui",
+    "types": ["web-app", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "chart|graph|dashboard|visualis|plot|recharts|d3|analytics.?ui|chart\\.js|echarts"
+  },
+  {
+    "id": "accessibility",
+    "name": "Accessibility",
+    "category": "ui",
+    "types": ["web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "accessib|a11y|aria|wcag|screen.?reader|keyboard.*nav|focus.*trap|contrast.*ratio"
+  },
+  {
+    "id": "seo",
+    "name": "SEO & Metadata",
+    "category": "ui",
+    "types": ["web-app", "fullstack"],
+    "baseline": false,
+    "trigger": "seo|meta.*tag|open.?graph|sitemap|robots\\.txt|canonical|structured.*data|schema\\.org|next.*head"
+  },
+  {
+    "id": "android-ui",
+    "name": "Jetpack Compose UI",
+    "category": "ui",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "compose|composable|recomposition|modifier|theme.*android|material.*3|preview.*composable|scaffold.*compose"
+  },
+  {
+    "id": "android-navigation",
+    "name": "Android Navigation",
+    "category": "ui",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "navigation|navcontroller|backstack|deeplink|bottom.*nav|drawer.*nav|navgraph|destination"
+  },
+  {
+    "id": "model-inference",
+    "name": "Model Inference Pipeline",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "inference|predict|llm|transformer|onnx|tflite|torchserve|triton|vllm|batch.*infer|realtime.*infer"
+  },
+  {
+    "id": "data-preprocessing",
+    "name": "Data Preprocessing",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "preprocess|clean.*data|normaliz|tokeniz|dataset|pipeline.*ml|etl|data.*transform|feature.*extract"
+  },
+  {
+    "id": "model-training",
+    "name": "Model Training Pipeline",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "finetun|fine.?tun|lora|qlora|unsloth|epoch|checkpoint|training.?loop|train.*script|trainer"
+  },
+  {
+    "id": "experiment-tracking",
+    "name": "Experiment Tracking",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "experiment|mlflow|wandb|w&b|neptune|comet|run.*track|metric.*log|artifact.*log|hyperparamet"
+  },
+  {
+    "id": "model-registry",
+    "name": "Model Registry & Versioning",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "model.*registry|model.*version|model.*store|model.*artifact|stage.*model|promote.*model|model.*lineage"
+  },
+  {
+    "id": "model-monitoring",
+    "name": "Model Monitoring & Drift Detection",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "drift|data.*drift|model.*degrad|monitor.*model|concept.*drift|distribut.*shift|evalu.*production|shadow.*deploy"
+  },
+  {
+    "id": "prompt-management",
+    "name": "Prompt Management",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "prompt|system.?message|context.?window|few.?shot|prompt.?template|prompt.*version|prompt.*eval"
+  },
+  {
+    "id": "data-validation",
+    "name": "Data Validation & Quality",
+    "category": "ml",
+    "types": ["ml-ai"],
+    "baseline": false,
+    "trigger": "great.*expectations|pandera|data.*valid|schema.*valid.*data|data.*quality|data.*contract|data.*test"
+  },
+  {
+    "id": "environment-config",
+    "name": "Environment & Secrets Management",
+    "category": "infra",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android"],
+    "baseline": true,
+    "trigger": "env|config|dotenv|secret|environment|settings|\\.env|vault|ssm|secret.*manager|key.*management"
+  },
+  {
+    "id": "background-jobs",
+    "name": "Background Jobs & Queues",
+    "category": "infra",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "queue|job|worker|celery|bull|beanstalk|cron|schedule|async.?task|message.*queue|sqs|rabbitmq"
+  },
+  {
+    "id": "deployment",
+    "name": "Deployment Pipeline",
+    "category": "infra",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "deploy|docker|ci.?cd|github.?action|pipeline|vercel|railway|render|kubernetes|k8s|ecs|cloud.*run"
+  },
+  {
+    "id": "cli-distribution",
+    "name": "CLI Distribution & Installation",
+    "category": "infra",
+    "types": ["cli-tool"],
+    "baseline": false,
+    "trigger": "distribut|publish|npm.*publish|cargo.*publish|brew|chocolatey|winget|scoop|install.*script|binary.*release|cross.?compil"
+  },
+  {
+    "id": "cli-self-update",
+    "name": "Self-Update Mechanism",
+    "category": "infra",
+    "types": ["cli-tool"],
+    "baseline": false,
+    "trigger": "self.?update|auto.?update|update.*check|new.*version.*available|upgrade.*cli|check.*release"
+  },
+  {
+    "id": "android-build-pipeline",
+    "name": "Android Build & Release Pipeline",
+    "category": "infra",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "play.*store|release.*build|signing|keystore.*sign|fastlane|gradle.*ci|github.*action.*android|bundle.*release|aab"
+  },
+  {
+    "id": "monorepo-tooling",
+    "name": "Monorepo Tooling",
+    "category": "infra",
+    "types": ["fullstack"],
+    "baseline": false,
+    "trigger": "monorepo|turborepo|nx\b|pnpm.*workspace|lerna|yarn.*workspace|shared.*package|workspace.*root"
+  },
+  {
+    "id": "container-orchestration",
+    "name": "Container Orchestration",
+    "category": "infra",
+    "types": ["api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "kubernetes|k8s|helm|kustomize|ecs|fargate|container.*orchestrat|pod\b|namespace.*k8s|ingress.*controller"
+  },
+  {
+    "id": "observability",
+    "name": "Observability & Monitoring",
+    "category": "infra",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "observ|opentelemetry|otel|datadog|prometheus|grafana|trace|span|metric.*collect|alert.*rule|uptime.*monitor"
+  },
+  {
+    "id": "notifications",
+    "name": "Notification System",
+    "category": "messaging",
+    "types": ["web-app", "fullstack", "android"],
+    "baseline": false,
+    "trigger": "notif|email|sms|push|alert|toast|inbox|fcm|apns|onesignal|sendgrid|email.*templat"
+  },
+  {
+    "id": "realtime",
+    "name": "Real-Time Communication",
+    "category": "messaging",
+    "types": ["web-app", "fullstack", "api-service"],
+    "baseline": false,
+    "trigger": "realtime|real.?time|websocket|socket\\.io|live|sse|event.?stream|pubsub|long.?poll"
+  },
+  {
+    "id": "event-streaming",
+    "name": "Event Streaming",
+    "category": "messaging",
+    "types": ["api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "kafka|kinesis|pubsub|event.*stream|event.*bus|event.*driven|event.*sourcing|cqrs|domain.*event"
+  },
+  {
+    "id": "automated-testing",
+    "name": "Automated Testing",
+    "category": "testing",
+    "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android"],
+    "baseline": true,
+    "trigger": "test|jest|pytest|vitest|junit|kotest|mockk|cypress|playwright|unit|integration|e2e|coverage"
+  },
+  {
+    "id": "contract-testing",
+    "name": "API Contract Testing",
+    "category": "testing",
+    "types": ["api-service", "fullstack"],
+    "baseline": false,
+    "trigger": "contract.*test|pact\b|consumer.*driven|provider.*test|api.*test.*contract|breaking.*change.*test"
+  },
+  {
+    "id": "android-testing",
+    "name": "Android Instrumented Testing",
+    "category": "testing",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "espresso|ui.*automator|instrumented.*test|android.*test|robolectric|compose.*test|test.*rule"
+  },
+  {
+    "id": "load-testing",
+    "name": "Load & Performance Testing",
+    "category": "testing",
+    "types": ["api-service", "fullstack", "ml-ai"],
+    "baseline": false,
+    "trigger": "load.*test|stress.*test|performance.*test|k6\b|locust|artillery|gatling|benchmark|throughput.*test"
+  },
+  {
+    "id": "android-di",
+    "name": "Dependency Injection (Hilt)",
+    "category": "android",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "hilt|dagger|inject\b|di\b|dependency.*inject|module.*android|component.*android"
+  },
+  {
+    "id": "android-viewmodel",
+    "name": "ViewModel & State Management",
+    "category": "android",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "viewmodel|uistate|stateflow|sharedflow|mutablestate|remember.*state|state.*hoist|ui.*state.*android"
+  },
+  {
+    "id": "android-network",
+    "name": "Networking & API Client",
+    "category": "android",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "retrofit|ktor.*client|okhttp|api.*client.*android|network.*layer.*android|remote.*datasource"
+  },
+  {
+    "id": "android-crash-reporting",
+    "name": "Crash Reporting & Analytics",
+    "category": "android",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "crashlytics|firebase|crash.*report|analytics.*android|logcat.*production|non.?fatal|anr\b"
+  },
+  {
+    "id": "app-signing",
+    "name": "App Signing & Release Management",
+    "category": "android",
+    "types": ["android"],
+    "baseline": false,
+    "trigger": "signing|keystore|upload.*key|release.*key|sign.*apk|sign.*aab|proguard|r8.*minif|obfuscat"
+  }
+]
