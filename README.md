@@ -93,7 +93,7 @@ Msingi generates files and exits. No API calls. No accounts. No runtime. Works o
 ### Windows (PowerShell 7)
 
 ```powershell
-git clone https://github.com/stemaide/msingi
+git clone https://github.com/xdagee/msingi
 cd msingi
 .\Install.ps1
 # New terminal window:
@@ -103,7 +103,7 @@ bootstrap
 ### macOS / Linux (Bash 4+)
 
 ```bash
-git clone https://github.com/stemaide/msingi
+git clone https://github.com/xdagee/msingi
 cd msingi
 chmod +x msingi.sh
 ./msingi.sh
