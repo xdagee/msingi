@@ -45,7 +45,7 @@
 
 .NOTES
     Add to PowerShell $PROFILE for global invocation:
-    Set-Alias bootstrap "C:\Users\Prince\Tools\bootstrap-agent\bootstrap-agent.ps1"
+    Set-Alias bootstrap "C:\Users\Prince\Tools\msingi\msingi.ps1"
 #>
 
 [CmdletBinding()]
@@ -203,7 +203,7 @@ function Write-Header {
 
 # ── Footer bar ────────────────────────────────────────────────────────────────
 function Write-Footer {
-    param([string]$Hints = "↑↓ navigate  Space select  Enter confirm  Ctrl+C abort")
+    param([string]$Hints = "↑↓ move  Space toggle  Enter confirm  Esc back")
     $tw   = Get-TermWidth
     $fill = $tw - 2
     $bar  = " $Hints"
@@ -430,96 +430,13 @@ function Write-TwoColumn {
         }
     }
 
-    # ── Move cursor to right-column content area ─────────────────────────────
-    $contentRow = 3
-    [Console]::SetCursorPosition($leftW + 1, $contentRow)
-    Write-Host ""
-
-    # Section title in right column
-    $contentRow = 4
-    [Console]::SetCursorPosition($leftW + 1, $contentRow)
-    $titleLine = "─" * [Math]::Max(0, $rightW - $SectionTitle.Length - 3)
-    Write-Host "$($C.Bold)$STEP_ACTIVE$SectionTitle$($C.Reset)  $(ansi-fg 40 40 55)$titleLine$($C.Reset)"
-
-    $contentRow++
-    if ($SectionSub) {
-        [Console]::SetCursorPosition($leftW + 1, $contentRow)
-        Write-Host "$(ansi-fg 100 100 120)$SectionSub$($C.Reset)"
-        $contentRow++
-    }
-
-    # Position cursor at content start for the calling screen
-    [Console]::SetCursorPosition($leftW + 1, $contentRow + 1)
-    Write-Host ""
-}
-
-# ── Screen frame: header + sidebar + section title ────────────────────────────
-# Call at the start of each screen, passing step index (0-based)
-function Write-Screen {
-    param(
-        [int]$StepIndex,
-        [string]$Mode      = "",
-        [string]$SectionSub = ""
-    )
-
-    $stepDefs = @(
-        "Mode",
-        "Project type",
-        "Details",
-        "Intake",
-        "Agents",
-        "Skills",
-        "Review"
-    )
-
-    Clear-Host
-    Write-Header -Mode $Mode -StepLabel "$($StepIndex + 1)/7"
-    Write-Host ""
-
-    # Sidebar: all steps, mark done/active/pending
-    $stepObjs = @()
-    for ($i = 0; $i -lt $stepDefs.Count; $i++) {
-        $state = if ($i -lt $StepIndex) { "done" } `
-                 elseif ($i -eq $StepIndex) { "active" } `
-                 else { "pending" }
-        $stepObjs += [PSCustomObject]@{ label = $stepDefs[$i]; state = $state }
-    }
-    Write-StepSidebar -Steps $stepObjs
-
-    Write-Rule
-    Write-Host ""
-}
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# INPUT HELPERS  (v3 — styled prompts, footer hints)
-# ═══════════════════════════════════════════════════════════════════════════════
-function Read-Line {
-    param([string]$Prompt, [string]$Default = "", [string]$Hint = "")
-    $defStr  = if ($Default) { "  $($C.Gray)[$Default]$($C.Reset)" } else { "" }
-    $hintStr = if ($Hint)    { "  $($C.Gray)$Hint$($C.Reset)" }     else { "" }
-    Write-Host "  $STEP_ACTIVE?$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)$defStr$hintStr  " -NoNewline
-    $val = Read-Host
-    if ([string]::IsNullOrWhiteSpace($val) -and $Default) { return $Default }
-    return $val.Trim()
-}
-
-function Read-Confirm {
-    param([string]$Prompt, [bool]$Default = $true)
-    $hint    = if ($Default) { "Y/n" } else { "y/N" }
-    $defMark = if ($Default) { ok "Y" } else { dim "n" }
-    Write-Host "  $STEP_ACTIVE?$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)($hint)$($C.Reset)  " -NoNewline
-    $val = Read-Host
-    if ([string]::IsNullOrWhiteSpace($val)) { return $Default }
-    return $val -match "^[yY]"
-}
-
-function Read-Choice {
+    # ── Move cursor to right-columnfunction Read-Choice {
     param([string[]]$Items, [int]$Selected = 0, [string]$Prompt = "Select",
-          [string]$FooterHint = "↑↓ move  Enter select")
+          [string]$FooterHint = "↑↓ move  Enter select  Esc back")
 
     # Strip ANSI sequences to get visible character length
     function Strip-Ansi-C([string]$s) {
-        return [regex]::Replace($s, "\[[0-9;]*[mABCDEFGHJKLMnsuhr]", "")
+        return [regex]::Replace($s, "\e\[[0-9;]*[mABCDEFGHJKLMnsuhr]", "")
     }
 
     # Physical terminal lines a single row occupies (accounts for line wrap)
@@ -535,7 +452,7 @@ function Read-Choice {
     }
 
     Write-Host ""
-    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Enter confirm$($C.Reset)"
+    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Enter confirm  Esc back$($C.Reset)"
     Write-Host ""
 
     $cur = [Math]::Clamp($Selected, 0, $Items.Count - 1)
@@ -553,11 +470,13 @@ function Read-Choice {
 
     Draw-Choice $Items $cur
 
+    $result = $cur
     while ($true) {
         $key   = [Console]::ReadKey($true)
         $moved = $false
 
-        if ($key.Key -eq [ConsoleKey]::Enter)     { break }
+        if ($key.Key -eq [ConsoleKey]::Enter)  { $result = $cur; break }
+        if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) { $result = -1; break }
 
         if ($key.Key -eq [ConsoleKey]::UpArrow) {
             $newCur = [Math]::Max(0, $cur - 1)
@@ -577,7 +496,96 @@ function Read-Choice {
 
     Write-Host $C.CursorOn -NoNewline
     Write-Host ""
-    return $cur
+    return $result
+}�═function Read-Checkboxes {
+    param([string[]]$Items, [bool[]]$Checked, [string]$Prompt = "Select",
+          [string]$FooterHint = "↑↓ move  Space toggle  Enter confirm  Esc back")
+
+    # Strip ANSI escape sequences from a string to get its visible length
+    function Strip-Ansi([string]$s) {
+        return [regex]::Replace($s, "\e\[[0-9;]*[mABCDEFGHJKLMnsuhr]", "")
+    }
+
+    # Calculate how many physical terminal lines a rendered row occupies.
+    # Row format is: "  ▶  ●  <label>   " — prefix is 9 visible chars.
+    function Row-Height([string]$label) {
+        $tw        = try { [Console]::WindowWidth } catch { 80 }
+        $prefix    = 9   # "  ▶  ●  " visible chars
+        $visible   = (Strip-Ansi $label).Length + $prefix + 3  # trailing spaces
+        return [Math]::Max(1, [Math]::Ceiling($visible / $tw))
+    }
+
+    # Total physical lines occupied by the full menu
+    function Menu-Height([string[]]$items) {
+        $h = 0
+        foreach ($item in $items) { $h += Row-Height $item }
+        return $h
+    }
+
+    Write-Host ""
+    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Space select  Enter confirm  Esc back$($C.Reset)"
+    Write-Host ""
+
+    # Start cursor on the first pre-checked item (or 0)
+    $cur = 0
+    for ($fi = 0; $fi -lt $Checked.Count; $fi++) {
+        if ($Checked[$fi]) { $cur = $fi; break }
+    }
+
+    Write-Host $C.CursorOff -NoNewline
+
+    function Draw-Checks([string[]]$items, [bool[]]$checked, [int]$c) {
+        foreach ($i in 0..($items.Count - 1)) {
+            $box   = if ($checked[$i]) { "$($C.BrGreen)●$($C.Reset)" } else { "$($C.Gray)○$($C.Reset)" }
+            $arrow = if ($i -eq $c)    { "$STEP_ACTIVE▶$($C.Reset)" } else { "  " }
+            $label = if ($i -eq $c) {
+                if ($checked[$i]) { "$($C.Bold)$($C.BrGreen)$($items[$i])$($C.Reset)" }
+                else              { "$($C.Bold)$STEP_ACTIVE$($items[$i])$($C.Reset)" }
+            } else {
+                if ($checked[$i]) { "$($C.BrGreen)$($items[$i])$($C.Reset)" }
+                else              { "$($C.Gray)$($items[$i])$($C.Reset)" }
+            }
+            Write-Host "  $arrow  $box  $label   "
+        }
+    }
+
+    Draw-Checks $Items $Checked $cur
+
+    $result = $Checked
+    while ($true) {
+        $key    = [Console]::ReadKey($true)
+        $moved  = $false
+        $toggled = $false
+
+        if ($key.Key -eq [ConsoleKey]::Enter)  { $result = $Checked; break }
+        if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) { $result = $null; break }
+
+        if ($key.Key -eq [ConsoleKey]::Spacebar) {
+            $Checked[$cur] = -not $Checked[$cur]
+            $toggled = $true
+        }
+
+        if ($key.Key -eq [ConsoleKey]::UpArrow) {
+            $newCur = [Math]::Max(0, $cur - 1)
+            if ($newCur -ne $cur) { $cur = $newCur; $moved = $true }
+        }
+        if ($key.Key -eq [ConsoleKey]::DownArrow) {
+            $newCur = [Math]::Min($Items.Count - 1, $cur + 1)
+            if ($newCur -ne $cur) { $cur = $newCur; $moved = $true }
+        }
+
+        # Only redraw when something actually changed
+        if ($moved -or $toggled) {
+            $physLines = Menu-Height $Items
+            Write-Host (cursor-up $physLines) -NoNewline
+            Draw-Checks $Items $Checked $cur
+        }
+    }
+
+    Write-Host $C.CursorOn -NoNewline
+    Write-Host ""
+    return $result
+}   return $cur
 }
 
 function Read-Checkboxes {
@@ -4698,7 +4706,7 @@ if ($Update) {
 
     try {
         $headers = @{ "User-Agent" = "Msingi/$VERSION" }
-        $apiUrl  = "https://api.github.com/repos/stemaide/msingi/releases/latest"
+        $apiUrl  = "https://api.github.com/repos/xdagee/msingi/releases/latest"
         $release = Invoke-RestMethod -Uri $apiUrl -Headers $headers -TimeoutSec 10
 
         $latestTag  = $release.tag_name -replace '^v', ''
@@ -4716,10 +4724,10 @@ if ($Update) {
         }
 
         # Find PS1 asset in the release, fall back to raw main
-        $ps1Asset = $release.assets | Where-Object { $_.name -like "bootstrap-agent*.ps1" } | Select-Object -First 1
+        $ps1Asset = $release.assets | Where-Object { $_.name -like "msingi*.ps1" } | Select-Object -First 1
         $ps1Url   = if ($ps1Asset) { $ps1Asset.browser_download_url } else {
             Write-Info "No release asset found — downloading from main branch"
-            "https://raw.githubusercontent.com/stemaide/msingi/main/bootstrap-agent.ps1"
+            "https://raw.githubusercontent.com/xdagee/msingi/main/msingi.ps1"
         }
 
         Write-Host "  $BRAND?$($C.Reset)  $($C.Bold)Update to $latestFull?$($C.Reset)  $($C.Gray)(Y/n)$($C.Reset)  " -NoNewline
@@ -4757,7 +4765,7 @@ if ($Update) {
 
     } catch {
         Write-Warn "Update failed: $_"
-        Write-Info "Update manually: https://github.com/stemaide/msingi/releases"
+        Write-Info "Update manually: https://github.com/xdagee/msingi/releases"
         exit 1
     }
     exit 0
@@ -4918,23 +4926,27 @@ if (-not $env:MSINGI_LAUNCHED -and -not $DryRun -and -not $Update -and -not $Che
     $env:MSINGI_LAUNCHED = "1"
     $scriptPath = $PSCommandPath
 
+    # Resolve the full path to pwsh.exe up front.
+    # wt.exe and Start-Process resolve executables against the system PATH,
+    # which may NOT include pwsh.exe's directory (per-user or session install).
+    $pwshExe = (Get-Process -Id $PID).Path   # guaranteed: the running pwsh
+
     # Prefer Windows Terminal (wt) — best colour and Unicode support
     $wt = Get-Command "wt.exe" -ErrorAction SilentlyContinue
     if ($wt) {
-        $wtArgs = @(
-            "new-tab",
-            "--title", "Msingi v$VERSION",
-            "--tabColor", "#00D2C8",
-            "pwsh.exe", "-NoLogo", "-ExecutionPolicy", "Bypass",
-            "-Command", "& `"$scriptPath`" $($args -join ' ')"
-        )
-        Start-Process "wt.exe" -ArgumentList $wtArgs
+        # Build a single argument string with explicit quoting.
+        # Start-Process -ArgumentList with a string[] joins elements with spaces
+        # but does NOT quote them — so "Msingi v3.8.1" becomes two tokens and
+        # wt.exe misparses the command line.  A single pre-quoted string avoids this.
+        $userArgs = ($args | ForEach-Object { $_ }) -join ' '
+        $wtArgStr = "new-tab --title `"Msingi v$VERSION`" --tabColor `"#00D2C8`" -- `"$pwshExe`" -NoLogo -ExecutionPolicy Bypass -File `"$scriptPath`" $userArgs"
+        Start-Process "wt.exe" -ArgumentList $wtArgStr
         exit 0
     }
 
     # Fallback: open in a new pwsh conhost window at 120×38
     $pwshArgs = "-NoLogo -ExecutionPolicy Bypass -Command `$host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(120,38); `$host.UI.RawUI.BufferSize = New-Object System.Management.Automation.Host.Size(120,200); & '$scriptPath' $($args -join ' ')"
-    Start-Process "pwsh.exe" -ArgumentList $pwshArgs
+    Start-Process $pwshExe -ArgumentList $pwshArgs
     exit 0
 }
 
@@ -5050,7 +5062,7 @@ if ($mode -eq "brownfield") {
     $project.Milestone   = Read-Line "Current milestone" $scanned.Milestone
     $project.TargetPath  = $scanInput
 } else {
-    $project.Name = Read-Line "Project name" "" "(e.g. stemaide-web)"
+    $project.Name = Read-Line "Project name" "" "(e.g. xdagee-web)"
     if (-not $project.Name) { Write-Fail "Project name is required."; exit 1 }
     $project.Description = Read-Line "Description" "" "(one sentence — what it does and who it's for)"
     $stackStr = Read-Line "Stack" "" "(e.g. PHP, MySQL, Tailwind CSS — or Kotlin, Jetpack Compose)"

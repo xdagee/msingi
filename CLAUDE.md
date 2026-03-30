@@ -9,7 +9,7 @@ Msingi is a context engineering scaffold generator. It generates the foundation
 every AI agent session needs to start from knowledge rather than exploration.
 
 Two implementations exist in parallel:
-- `bootstrap-agent.ps1` — PowerShell 7, Windows, interactive TUI (v3.7.0, 5000+ lines)
+- `msingi.ps1` — PowerShell 7, Windows, interactive TUI (v3.7.0, 5000+ lines)
 - `msingi.sh` — Bash 4+, macOS/Linux, same output via `read` prompts (v3.7.0)
 - `msingi-go/` — Go rewrite in progress (Bubble Tea TUI, goreleaser distribution)
 

@@ -7,7 +7,7 @@
 *Msingi* is Swahili for **foundation** — the groundwork you lay before building.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](bootstrap-agent.ps1)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](msingi.ps1)
 [![Platform: macOS/Linux](https://img.shields.io/badge/platform-macOS%20%2F%20Linux-green.svg)](msingi.sh)
 [![Version](https://img.shields.io/badge/version-3.6.0-orange.svg)](#)
 
@@ -95,7 +95,7 @@ Msingi generates files and exits. No API calls. No accounts. No runtime. Works o
 ```powershell
 git clone https://github.com/xdagee/msingi
 cd msingi
-.\Install.ps1
+.\install.ps1
 # New terminal window:
 bootstrap
 ```
@@ -215,7 +215,7 @@ Msingi builds on ideas from:
 
 | Version | Changes |
 |---|---|
-| **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `Install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |
+| **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |
 | **3.6.0** | ECC-inspired confidence metadata in gotchas.md. Each gotcha is now a belief with evidence: 5 confidence tiers (●●●●● → ●○○○○), trigger keywords, last_seen, status. All 9 skill categories seeded with structured What/Why/Prevention entries. |
 | **3.5.0** | WORKSTREAMS.md and DOMAIN.md added. Parallel agent coordination with scope ownership, phase gates, merge checkpoints. Pedagogical domain context for teaching agents the business domain. Token leverage note in SESSION.md. |
 | **3.4.0** | Token cost management. SESSION.md context cost log. NOTES.md tiered memory with archive compression. SKILL.md Quick start section with category-specific interface + #1 gotcha. |
