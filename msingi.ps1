@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Msingi v3.7.0 — Self-configuring multi-agent project scaffold tool.
+    Msingi v3.8.1 — Self-configuring multi-agent project scaffold tool.
 
 .DESCRIPTION
     Interactive PowerShell 7 TUI that scaffolds production-ready projects with
@@ -144,9 +144,69 @@ $HEADER_BG   = ansi-bg 18 18 28
 $FOOTER_BG   = ansi-bg 18 18 28
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SUCCESS INFRASTRUCTURE (Success Criteria Implementation)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# 1. Terminal Capability Detection
+$TERM_CAPS = @{
+    Unicode = $true
+    Color   = $true
+    Width   = 80
+}
+
+function Test-Terminal {
+    # Detect Unicode support
+    if ($IsWindows) {
+        $TERM_CAPS.Unicode = $OutputEncoding.EncodingName -match "utf-8" -or [Console]::OutputEncoding.EncodingName -match "utf-8"
+    } else {
+        $TERM_CAPS.Unicode = $env:LANG -match "UTF-8"
+    }
+
+    # Detect Color support
+    if ($env:NO_COLOR -or $env:TERM -eq "dumb") {
+        $TERM_CAPS.Color = $false
+    } elseif ($env:CI) {
+        $TERM_CAPS.Color = $true # Most CI systems support color
+    }
+    
+    $TERM_CAPS.Width = try { [Console]::WindowWidth } catch { 80 }
+    if ($TERM_CAPS.Width -lt 20) { $TERM_CAPS.Width = 80 }
+}
+
+# 2. Data Integrity Validation
+function Validate-Data {
+    param([string]$File)
+    if (-not (Test-Path $File)) {
+        throw "Critical: Configuration file not found: $File"
+    }
+    try {
+        $data = Get-Content $File -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not $data.schema_version) {
+            throw "Invalid Schema: $File is missing schema_version. Please update your data files."
+        }
+    } catch {
+        throw "Syntax Error: $File contains invalid JSON logic. Please check for trailing commas or missing brackets."
+    }
+}
+
+# 3. State Persistence
+$STATE_FILE = Join-Path $HOME ".msingi_state.json"
+function Save-State {
+    param($StateObj)
+    $StateObj | ConvertTo-Json | Set-Content $STATE_FILE
+}
+
+function Load-State {
+    if (Test-Path $STATE_FILE) {
+        return Get-Content $STATE_FILE -Raw | ConvertFrom-Json
+    }
+    return $null
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # TERMINAL GEOMETRY
 # ═══════════════════════════════════════════════════════════════════════════════
-function Get-TermWidth  { try { [Console]::WindowWidth  } catch { 80 } }
+function Get-TermWidth  { $TERM_CAPS.Width }
 function Get-TermHeight { try { [Console]::WindowHeight } catch { 24 } }
 
 # Sidebar width (steps panel)
@@ -429,10 +489,12 @@ function Write-TwoColumn {
             Write-Host "  $(ansi-fg 80 80 100)$($s.Substring(0, [Math]::Min($s.Length, $leftW - 3)))$($C.Reset)"
         }
     }
+}
 
-    # ── Move cursor to right-columnfunction Read-Choice {
+# ── Move cursor to right-column
+function Read-Choice {
     param([string[]]$Items, [int]$Selected = 0, [string]$Prompt = "Select",
-          [string]$FooterHint = "↑↓ move  Enter select  Esc back")
+          [string]$FooterHint = "↑↓ navigate  Tab next  Shift+Tab prev  Enter confirm  Esc back")
 
     # Strip ANSI sequences to get visible character length
     function Strip-Ansi-C([string]$s) {
@@ -452,7 +514,7 @@ function Write-TwoColumn {
     }
 
     Write-Host ""
-    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Enter confirm  Esc back$($C.Reset)"
+    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Enter confirm  Tab next  Shift+Tab prev  → next  ← prev  G goto$($C.Reset)"
     Write-Host ""
 
     $cur = [Math]::Clamp($Selected, 0, $Items.Count - 1)
@@ -471,12 +533,41 @@ function Write-TwoColumn {
     Draw-Choice $Items $cur
 
     $result = $cur
+    $confirmed = $false
     while ($true) {
         $key   = [Console]::ReadKey($true)
         $moved = $false
 
-        if ($key.Key -eq [ConsoleKey]::Enter)  { $result = $cur; break }
+        if ($key.Key -eq [ConsoleKey]::Enter)  { $result = $cur; $confirmed = $true; break }
         if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) { $result = -1; break }
+        if ($key.Key -eq [ConsoleKey]::G) { $result = -4; break }
+        if ($key.Key -eq [ConsoleKey]::Tab) {
+            if ($key.Modifiers -band [ConsoleModifiers]::Shift) {
+                $result = -3; break
+            } else {
+                if ($confirmed) {
+                    $result = -2; break
+                } else {
+                    Write-Host "  $($C.Yellow)→ Press Enter to confirm first, then Tab to advance$($C.Reset)" -NoNewline
+                    Write-Host "`r" -NoNewline
+                    Write-Host (" " * 60) -NoNewline
+                    Write-Host "`r" -NoNewline
+                }
+            }
+        }
+        if ($key.Key -eq [ConsoleKey]::RightArrow) {
+            if ($confirmed) {
+                $result = -2; break
+            } else {
+                Write-Host "  $($C.Yellow)→ Press Enter to confirm first, then → to advance$($C.Reset)" -NoNewline
+                Write-Host "`r" -NoNewline
+                Write-Host (" " * 60) -NoNewline
+                Write-Host "`r" -NoNewline
+            }
+        }
+        if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+            $result = -3; break
+        }
 
         if ($key.Key -eq [ConsoleKey]::UpArrow) {
             $newCur = [Math]::Max(0, $cur - 1)
@@ -488,6 +579,7 @@ function Write-TwoColumn {
         }
 
         if ($moved) {
+            $confirmed = $false
             $physLines = Menu-Height-C $Items
             Write-Host (cursor-up $physLines) -NoNewline
             Draw-Choice $Items $cur
@@ -497,9 +589,11 @@ function Write-TwoColumn {
     Write-Host $C.CursorOn -NoNewline
     Write-Host ""
     return $result
-}�═function Read-Checkboxes {
+}
+
+function Read-Checkboxes {
     param([string[]]$Items, [bool[]]$Checked, [string]$Prompt = "Select",
-          [string]$FooterHint = "↑↓ move  Space toggle  Enter confirm  Esc back")
+          [string]$FooterHint = "↑↓ navigate  Space toggle  Tab next  Shift+Tab prev  Enter confirm  Esc back")
 
     # Strip ANSI escape sequences from a string to get its visible length
     function Strip-Ansi([string]$s) {
@@ -523,98 +617,7 @@ function Write-TwoColumn {
     }
 
     Write-Host ""
-    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Space select  Enter confirm  Esc back$($C.Reset)"
-    Write-Host ""
-
-    # Start cursor on the first pre-checked item (or 0)
-    $cur = 0
-    for ($fi = 0; $fi -lt $Checked.Count; $fi++) {
-        if ($Checked[$fi]) { $cur = $fi; break }
-    }
-
-    Write-Host $C.CursorOff -NoNewline
-
-    function Draw-Checks([string[]]$items, [bool[]]$checked, [int]$c) {
-        foreach ($i in 0..($items.Count - 1)) {
-            $box   = if ($checked[$i]) { "$($C.BrGreen)●$($C.Reset)" } else { "$($C.Gray)○$($C.Reset)" }
-            $arrow = if ($i -eq $c)    { "$STEP_ACTIVE▶$($C.Reset)" } else { "  " }
-            $label = if ($i -eq $c) {
-                if ($checked[$i]) { "$($C.Bold)$($C.BrGreen)$($items[$i])$($C.Reset)" }
-                else              { "$($C.Bold)$STEP_ACTIVE$($items[$i])$($C.Reset)" }
-            } else {
-                if ($checked[$i]) { "$($C.BrGreen)$($items[$i])$($C.Reset)" }
-                else              { "$($C.Gray)$($items[$i])$($C.Reset)" }
-            }
-            Write-Host "  $arrow  $box  $label   "
-        }
-    }
-
-    Draw-Checks $Items $Checked $cur
-
-    $result = $Checked
-    while ($true) {
-        $key    = [Console]::ReadKey($true)
-        $moved  = $false
-        $toggled = $false
-
-        if ($key.Key -eq [ConsoleKey]::Enter)  { $result = $Checked; break }
-        if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) { $result = $null; break }
-
-        if ($key.Key -eq [ConsoleKey]::Spacebar) {
-            $Checked[$cur] = -not $Checked[$cur]
-            $toggled = $true
-        }
-
-        if ($key.Key -eq [ConsoleKey]::UpArrow) {
-            $newCur = [Math]::Max(0, $cur - 1)
-            if ($newCur -ne $cur) { $cur = $newCur; $moved = $true }
-        }
-        if ($key.Key -eq [ConsoleKey]::DownArrow) {
-            $newCur = [Math]::Min($Items.Count - 1, $cur + 1)
-            if ($newCur -ne $cur) { $cur = $newCur; $moved = $true }
-        }
-
-        # Only redraw when something actually changed
-        if ($moved -or $toggled) {
-            $physLines = Menu-Height $Items
-            Write-Host (cursor-up $physLines) -NoNewline
-            Draw-Checks $Items $Checked $cur
-        }
-    }
-
-    Write-Host $C.CursorOn -NoNewline
-    Write-Host ""
-    return $result
-}   return $cur
-}
-
-function Read-Checkboxes {
-    param([string[]]$Items, [bool[]]$Checked, [string]$Prompt = "Select",
-          [string]$FooterHint = "↑↓ move  Space toggle  Enter confirm")
-
-    # Strip ANSI escape sequences from a string to get its visible length
-    function Strip-Ansi([string]$s) {
-        return [regex]::Replace($s, "\[[0-9;]*[mABCDEFGHJKLMnsuhr]", "")
-    }
-
-    # Calculate how many physical terminal lines a rendered row occupies.
-    # Row format is: "  ▶  ●  <label>   " — prefix is 9 visible chars.
-    function Row-Height([string]$label) {
-        $tw        = try { [Console]::WindowWidth } catch { 80 }
-        $prefix    = 9   # "  ▶  ●  " visible chars
-        $visible   = (Strip-Ansi $label).Length + $prefix + 3  # trailing spaces
-        return [Math]::Max(1, [Math]::Ceiling($visible / $tw))
-    }
-
-    # Total physical lines occupied by the full menu
-    function Menu-Height([string[]]$items) {
-        $h = 0
-        foreach ($item in $items) { $h += Row-Height $item }
-        return $h
-    }
-
-    Write-Host ""
-    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Space select  Enter confirm$($C.Reset)"
+    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)↑↓ navigate  Space toggle  Enter confirm  Tab next  Shift+Tab prev  → next  ← prev  G goto$($C.Reset)"
     Write-Host ""
 
     # Start cursor on the first pre-checked item (or 0)
@@ -643,16 +646,48 @@ function Read-Checkboxes {
 
     Draw-Checks $Items $Checked $cur
 
+    $navResult = 0
+    $confirmed = $false
     while ($true) {
         $key    = [Console]::ReadKey($true)
         $moved  = $false
         $toggled = $false
 
-        if ($key.Key -eq [ConsoleKey]::Enter)    { break }
+        if ($key.Key -eq [ConsoleKey]::Enter)    { $navResult = 0; $confirmed = $true; break }
+        if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) { $navResult = -1; break }
+        if ($key.Key -eq [ConsoleKey]::G) { $navResult = -4; break }
+        if ($key.Key -eq [ConsoleKey]::Tab) {
+            if ($key.Modifiers -band [ConsoleModifiers]::Shift) {
+                $navResult = -3; break
+            } else {
+                if ($confirmed) {
+                    $navResult = -2; break
+                } else {
+                    Write-Host "  $($C.Yellow)→ Press Enter to confirm first, then Tab to advance$($C.Reset)" -NoNewline
+                    Write-Host "`r" -NoNewline
+                    Write-Host (" " * 70) -NoNewline
+                    Write-Host "`r" -NoNewline
+                }
+            }
+        }
+        if ($key.Key -eq [ConsoleKey]::RightArrow) {
+            if ($confirmed) {
+                $navResult = -2; break
+            } else {
+                Write-Host "  $($C.Yellow)→ Press Enter to confirm first, then → to advance$($C.Reset)" -NoNewline
+                Write-Host "`r" -NoNewline
+                Write-Host (" " * 70) -NoNewline
+                Write-Host "`r" -NoNewline
+            }
+        }
+        if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+            $navResult = -3; break
+        }
 
         if ($key.Key -eq [ConsoleKey]::Spacebar) {
             $Checked[$cur] = -not $Checked[$cur]
             $toggled = $true
+            $confirmed = $false
         }
 
         if ($key.Key -eq [ConsoleKey]::UpArrow) {
@@ -674,7 +709,94 @@ function Read-Checkboxes {
 
     Write-Host $C.CursorOn -NoNewline
     Write-Host ""
+    if ($navResult -ne 0) { return $navResult }
     return $Checked
+}
+
+function Read-Line {
+    param([string]$Prompt, [string]$Default = "", [string]$Hint = "")
+
+    Write-Host ""
+    if ($Hint) {
+        Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)$Hint$($C.Reset)"
+    } else {
+        Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)Enter confirm  Esc back$($C.Reset)"
+    }
+    
+    $displayDefault = if ($Default) { "  [$Default]" } else { "" }
+    Write-Host "  $(dim "(leave empty to keep current value)")"
+    Write-Host "  $displayDefault  " -NoNewline
+    
+    $inputStr = ""
+    
+    while ($true) {
+        $key = [Console]::ReadKey($true)
+        
+        # Back navigation
+        if ($key.Key -eq [ConsoleKey]::Escape) {
+            Write-Host "`r" -NoNewline
+            Write-Host (" " * ([Console]::WindowWidth - 1)) -NoNewline
+            Write-Host "`r" -NoNewline
+            return $null
+        }
+        
+        # Confirm
+        if ($key.Key -eq [ConsoleKey]::Enter) {
+            Write-Host ""
+            if (-not $inputStr -and $Default) { return $Default }
+            return $inputStr.Trim()
+        }
+        
+        # Backspace
+        if ($key.Key -eq [ConsoleKey]::Backspace) {
+            if ($inputStr.Length -gt 0) {
+                $inputStr = $inputStr.Substring(0, $inputStr.Length - 1)
+                Write-Host "`b `b" -NoNewline
+            }
+            continue
+        }
+        
+        # Tab completion (accept default)
+        if ($key.Key -eq [ConsoleKey]::Tab -and -not $inputStr) {
+            $inputStr = $Default
+            Write-Host $inputStr -NoNewline
+            continue
+        }
+        
+        # Printable characters
+        if ($key.KeyChar -ge 32 -and $key.KeyChar -le 126) {
+            $inputStr += $key.KeyChar
+            Write-Host $key.KeyChar -NoNewline
+        }
+    }
+}
+
+function Read-Confirm {
+    param([string]$Prompt, [bool]$Default = $false)
+    
+    $defaultStr = if ($Default) { "Y/n" } else { "y/N" }
+    Write-Host ""
+    Write-Host "  $STEP_ACTIVE›$($C.Reset)  $($C.Bold)$Prompt$($C.Reset)  $($C.Gray)($defaultStr)  Enter confirm  Esc back$($C.Reset)"
+    
+    while ($true) {
+        $key = [Console]::ReadKey($true)
+        
+        if ($key.Key -eq [ConsoleKey]::Enter) {
+            return $Default
+        }
+        if ($key.Key -eq [ConsoleKey]::Escape -or $key.Key -eq [ConsoleKey]::B) {
+            return $null
+        }
+        
+        if ($key.KeyChar -eq 'y' -or $key.KeyChar -eq 'Y') {
+            Write-Host "  $(ok "Yes")"
+            return $true
+        }
+        if ($key.KeyChar -eq 'n' -or $key.KeyChar -eq 'N') {
+            Write-Host "  $(dim "No")"
+            return $false
+        }
+    }
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -683,13 +805,15 @@ function Read-Checkboxes {
 function Load-Agents {
     $p = Join-Path $SCRIPT_DIR "agents.json"
     if (-not (Test-Path $p)) { Write-Fail "agents.json not found: $p"; exit 1 }
-    return Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json
+    $data = Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json
+    return $data.agents
 }
 
 function Load-SkillPatterns {
     $p = Join-Path $SCRIPT_DIR "skills.json"
     if (-not (Test-Path $p)) { Write-Fail "skills.json not found: $p"; exit 1 }
-    return Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json
+    $data = Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json
+    return $data.skills
 }
 
 
@@ -1524,6 +1648,108 @@ Never log PII. Log: error code, feature area, anonymised user state.
 - Force close rate increase → Play Console alert configured
 "@
         androidGradle = $true
+    },
+    @{
+        id          = "desktop-windows"
+        label       = "Desktop App (Windows)"
+        description = "Native Windows application — WinUI 3 / WPF · MVVM · MSIX · Windows App SDK"
+        architecture = @"
+### Pattern
+MVVM (Model-View-ViewModel) with strict separation between XAML UI and business logic.
+
+### Layers
+- **View**: XAML files and code-behind (UI only)
+- **ViewModel**: Observes models, provides data for binding, handles UI commands
+- **Model**: Domain logic, data entities, services
+- **Infrastructure**: Native Windows APIs, local File IO, Windows Registry, SQLite
+
+### Windows App SDK / WinUI 3
+Prefer WinUI 3 for new applications. Use Community Toolkit for MVVM and common UI patterns.
+Dependency Injection via `Microsoft.Extensions.DependencyInjection`.
+
+### State management
+Local state in ViewModels with `INotifyPropertyChanged`. Persistent state in local SQLite or JSON settings.
+"@
+        nfr = @"
+## Non-Functional Requirements
+
+### Performance
+- Cold start: < 1.5 s to first interactive window
+- UI responsiveness: 60 fps; no blocking calls on the UI thread
+- Memory footprint: define baseline for idle state and peak usage
+
+### Reliability
+- Graceful handling of Windows Sleep/Hibernate transitions
+- Atomic file writes for user data and settings
+- Error reporting via Windows Event Log or integrated telemetry
+
+### Compatibility
+- Windows 10 version 1809 (build 17763) as minimum (check project requirements)
+- Support for x64 and ARM64 architectures
+- High DPI awareness and per-monitor scaling support
+
+### Security
+- Use Windows Credential Manager for sensitive user tokens—never plain text files
+- DLL hijacking prevention: secure dependency loading
+- Application signing for all distribution packages
+"@
+        securityThreats = @"
+## Threat Model — Windows Desktop App
+
+### Input and Files
+- Path traversal: validate all file path inputs; resolve relative to app data folders
+- Untrusted file formats: sanitise and validate any data loaded from user-supplied files
+- Command injection: never pass unvalidated user input to `Process.Start` or shell commands
+
+### Credentials
+- Insecure storage: secrets stored in `.config` or `.xml` are easily extracted
+- Memory scrapers: clear sensitive data from memory as soon as possible after use
+
+### Distribution
+- DLL Hijacking: avoid loading DLLs from search paths that include user-writable folders
+- Package tampering: verify MSIX package integrity before installation or update
+- Manifest spoofing: audit `AppxManifest.xml` for excessive capabilities/permissions
+"@
+        qualityGates = @"
+## Production Quality Gates — Windows Desktop App
+
+### Build and Package
+- [ ] Compiles for both x64 and ARM64 architectures
+- [ ] MSIX package created and validated with Windows App Certification Kit
+- [ ] Application and installer signed with a valid code-signing certificate
+
+### Code Quality
+- [ ] No blocking synchronous I/O on the UI thread
+- [ ] No hardcoded file paths — use `Environment.SpecialFolder`
+- [ ] Linter/Analyser (e.g. StyleCop, Roslyn) passes with no warnings
+
+### Testing
+- [ ] Unit tests for all ViewModels and Domain logic (≥ 80% coverage)
+- [ ] UI Automation tests for critical user flows (WinAppDriver or equivalent)
+- [ ] Installer 'Upgrade' and 'Uninstall' paths verified for data persistence
+
+### Definition of Done
+Signed MSIX package ready for distribution. App Certification Kit passes.
+Unit and UI tests green. No blocking I/O on main thread.
+"@
+        observabilityFocus = @"
+## Observability Requirements — Windows Desktop App
+
+### Logging
+Centralised logging using a library like Serilog.
+- **File logs**: stored in `%LocalAppData%\<AppName>\Logs`; auto-rotate and prune
+- **Event Log**: log critical system-level errors to Windows Event Viewer
+
+### Telemetry (Opt-in)
+Non-PII telemetry covering:
+- Application version, OS version, and Architecture (x64/ARM64)
+- Feature usage frequency and session duration
+- Crash stacks and exception types (automated minidump collection for native crashes)
+
+### Versioning
+`--version` (or 'About' box) must report: App Version, SDK Version, Runtime Version.
+"@
+        androidGradle = $false
     }
 )
 
@@ -1636,7 +1862,21 @@ function Invoke-ProjectScan {
 function Invoke-SkillInference {
     # Two-pass: type-scoped candidates first, then trigger matching within that set.
     # Baseline skills are always added regardless of type or trigger.
+    # Returns: list of skills with TriggerMatches and Confidence properties added
     param([string]$Haystack, [string]$TypeId, $Patterns)
+
+    # Category weights for confidence calculation
+    $categoryWeights = @{
+        "auth" = 1.5
+        "data" = 1.2
+        "api" = 1.0
+        "infra" = 0.9
+        "testing" = 0.9
+        "messaging" = 0.9
+        "ui" = 0.8
+        "ml" = 0.8
+        "android" = 0.8
+    }
 
     # Pass 1 — scope candidates to this project type (if types field present)
     $candidates = [System.Collections.Generic.List[object]]::new()
@@ -1647,15 +1887,38 @@ function Invoke-SkillInference {
         }
     }
 
-    # Pass 2 — trigger match within scoped candidates
+    # Pass 2 — trigger match within scoped candidates (with trigger tracking)
     $matched = [System.Collections.Generic.List[object]]::new()
+    $haystackLower = $Haystack.ToLower()
     foreach ($p in $candidates) {
-        if ($p.trigger -and $Haystack -match $p.trigger) { $matched.Add($p) }
+        if ($p.trigger) {
+            $triggerMatches = @()
+            $regex = [regex]::new($p.trigger, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            $matches = $regex.Matches($Haystack)
+            foreach ($m in $matches) {
+                $triggerMatches += $m.Value
+            }
+            if ($triggerMatches.Count -gt 0) {
+                $p | Add-Member -NotePropertyName TriggerMatches -NotePropertyValue $triggerMatches -Force
+                
+                # Calculate confidence: trigger_count * category_weight * position_bonus
+                $catWeight = if ($categoryWeights[$p.category]) { $categoryWeights[$p.category] } else { 0.8 }
+                $firstPos = $matches[0].Index
+                $descLen = if ($Haystack.Length -gt 0) { $Haystack.Length } else { 1 }
+                $posBonus = 1.0 + (0.1 * (1 - ($firstPos / $descLen)))
+                $confidence = [Math]::Min(5, [Math]::Round($triggerMatches.Count * $catWeight * $posBonus))
+                $p | Add-Member -NotePropertyName Confidence -NotePropertyValue $confidence -Force
+                
+                $matched.Add($p)
+            }
+        }
     }
 
-    # Pass 3 — add baseline skills (scoped to type) not already matched
+    # Pass 3 — add baseline skills (scoped to type) not already matched (no triggers)
     foreach ($p in $candidates) {
         if ($p.baseline -and -not ($matched | Where-Object { $_.id -eq $p.id })) {
+            $p | Add-Member -NotePropertyName TriggerMatches -NotePropertyValue @() -Force
+            $p | Add-Member -NotePropertyName Confidence -NotePropertyValue 1 -Force
             $matched.Add($p)
         }
     }
@@ -1684,16 +1947,34 @@ function Invoke-SkillsReview {
         $addAny = Read-Confirm "Add skills manually?" $false
         if (-not $addAny) { return @() }
     } else {
+        # Build labels with confidence and triggers
         $labels = @($InferredSkills | ForEach-Object {
-            "$($_.name)  $(dim "[$($_.category)]")"
+            $conf = if ($_.Confidence) { $_.Confidence } else { 1 }
+            # Confidence dots: ● for filled, ○ for empty
+            $dots = ""
+            for ($i = 1; $i -le 5; $i++) {
+                if ($i -le $conf) { $dots += "●" } else { $dots += "○" }
+            }
+            $cat = if ($_.category) { $_.category } else { "?" }
+            
+            # Triggers if available
+            $triggerInfo = ""
+            if ($_.TriggerMatches -and $_.TriggerMatches.Count -gt 0) {
+                $triggerInfo = " ← inferred: ""$($_.TriggerMatches -join '"", ""')"""
+            }
+            
+            "$($_.name)  $(dim "$dots $cat")$triggerInfo"
         })
         $checked = @($InferredSkills | ForEach-Object { $true })
-        $checked = Read-Checkboxes -Items $labels -Checked $checked -Prompt "Inferred skills"
+        $checked = Read-Checkboxes -Items $labels -Checked $checked -Prompt "Inferred skills (● = confidence)"
+        if ($null -eq $checked -or ($checked -is [int])) { return $checked }
     }
 
     $selected = [System.Collections.Generic.List[object]]::new()
-    for ($i = 0; $i -lt $InferredSkills.Count; $i++) {
-        if ($checked[$i]) { $selected.Add($InferredSkills[$i]) }
+    if ($checked -is [array]) {
+        for ($i = 0; $i -lt $InferredSkills.Count; $i++) {
+            if ($checked[$i]) { $selected.Add($InferredSkills[$i]) }
+        }
     }
 
     Write-Host ""
@@ -1708,7 +1989,7 @@ function Invoke-SkillsReview {
         }
         $addMore = Read-Confirm "Add another?" $false
     }
-    return @($selected)
+    return $selected.ToArray()
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1841,6 +2122,26 @@ across sessions (ACE principle: execution feedback updating bullet metadata).
 - All inputs validated at the boundary — never trust caller
 - No speculative implementation: if the spec is ambiguous, flag in SESSION.md — do not guess
 - When you hit a failure: update ``gotchas.md`` in the relevant skill folder before continuing
+
+## Agentic loop protocol
+Every action must follow this cycle. No exceptions.
+
+1. **Goal** — State the goal and success criteria before acting
+2. **Act** — Take a single, concrete action (edit a file, run a command, search)
+3. **Evaluate** — Check the result against QUALITY.md gates and acceptance criteria
+4. **Adapt** — If the action failed, try an alternative approach. Log both attempts:
+   ``[attempt 1] approach X → failed: reason`` / ``[attempt 2] approach Y → succeeded``
+5. **Escalate** — After 3 failed attempts at the same sub-goal, set Status: ESCALATE.
+   Do not loop indefinitely — the cost of retrying exceeds the cost of asking for help.
+6. **Verify** — On success, confirm the result satisfies the original goal before moving on.
+   A passing test is not a passing feature — check against the user's stated intent.
+
+**Anti-patterns to avoid:**
+- Acting without stating the goal (makes evaluation impossible)
+- Skipping evaluation after an action (leads to cascading failures)
+- Retrying the same approach verbatim (insanity loop)
+- Marking done without verifying against acceptance criteria (silent degradation)
+
 
 ## On-demand hooks
 Invoke these slash commands for specific high-risk sessions:
@@ -3506,6 +3807,13 @@ function Build-SkillGotchas {
 
         api = @"
 
+### G-005 · Offline-first sync races cause data loss
+`confidence: ●●●●○ high`  `triggers: offline, sync, conflict, local-first, merge`  `last_seen: seeded`  `status: ACTIVE`
+`helpful: 0`  `harmful: 0`
+**What:** User makes changes offline, then syncs. Race between local and remote causes one set of changes to be silently dropped.
+**Why:** No conflict resolution strategy. Last-write-wins or no strategy at all.
+**Prevention:** Implement explicit conflict resolution UI. Use CRDTs or operational transforms. Log and alert on conflicts instead of silently discarding.
+
 ### G-001 · 200 status with error body
 ``confidence: ●●●●● critical``  ``triggers: response, status, error, return, handler``  ``last_seen: seeded``  ``status: ACTIVE``
 ``helpful: 0``  ``harmful: 0``
@@ -3536,6 +3844,20 @@ function Build-SkillGotchas {
 "@
 
         ui = @"
+
+### G-005 · API gateway forwards requests to all upstream services
+`confidence: ●●●●○ high`  `triggers: gateway, proxy, bff, forward, route, upstream`  `last_seen: seeded`  `status: ACTIVE`
+`helpful: 0`  `harmful: 0`
+**What:** Gateway calls every backend service even when one would suffice — adds latency, masks failures.
+**Why:** Incorrect route configuration or wildcard matching in gateway routing rules.
+**Prevention:** Verify routing rules explicitly match the intended service. Test with malformed paths. Monitor per-upstream latency in gateway metrics.
+
+### G-006 · BFF aggregates data but does not handle partial failures
+`confidence: ●●●●○ high`  `triggers: bff, aggregate, compose, partial, fallback, circuit`  `last_seen: seeded`  `status: ACTIVE`
+`helpful: 0`  `harmful: 0`
+**What:** One upstream service fails and the entire BFF response fails, even though some data could still be returned.
+**Why:** No circuit breaker or partial response strategy implemented in the aggregation layer.
+**Prevention:** Implement circuit breakers per upstream. Return partial data with nulls or defaults for failed services. Surface failure info in response metadata.
 
 ### G-001 · Inline object/function prop causes re-renders on every parent render
 ``confidence: ●●●●○ high``  ``triggers: props, render, component, function, object, memo``  ``last_seen: seeded``  ``status: ACTIVE``
@@ -3629,6 +3951,20 @@ function Build-SkillGotchas {
 "@
 
         messaging = @"
+
+### G-005 · Premature optimization hides real bottlenecks
+`confidence: ●●●○○ medium`  `triggers: optim, profile, benchmark, perf, bottleneck`  `last_seen: seeded`  `status: ACTIVE`
+`helpful: 0`  `harmful: 0`
+**What:** Developer spends days optimizing code that is not in the hot path. Real bottleneck remains unaddressed.
+**Why:** No profiling data. Assumptions about performance based on intuition rather than measurement.
+**Prevention:** Profile in production or realistic staging. Use flame graphs. Optimize only after measurement shows the code is on the critical path.
+
+### G-006 · CI pipeline runs full test suite on every branch
+`confidence: ●●●○○ medium`  `triggers: ci, pipeline, test, branch, pr, workflow`  `last_seen: seeded`  `status: ACTIVE`
+`helpful: 0`  `harmful: 0`
+**What:** Every PR triggers a 30-minute test suite, discouraging fast iteration. Developers skip tests to ship faster.
+**Why:** No test categorization. No parallelization. No selective test execution based on changed files.
+**Prevention:** Split tests into unit, integration, e2e. Run unit tests on every commit. Run integration on main and release branches only. Parallelize aggressively.
 
 ### G-001 · Consumer not idempotent
 ``confidence: ●●●●● critical``  ``triggers: consume, process, message, handler, queue, event``  ``last_seen: seeded``  ``status: ACTIVE``
@@ -4608,6 +4944,75 @@ function Emit {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# EXECUTION PLAN SCREEN
+# ═══════════════════════════════════════════════════════════════════════════════
+function Show-ExecutionPlan {
+    param($Project, $Agents, $Skills, [string]$WorkflowMode)
+
+    Clear-Host
+    Write-Host ""
+    Write-Host "  $BRAND$($C.Bold)EXECUTION PLAN$($C.Reset)  $(dim "$WorkflowMode mode")$($C.Reset)"
+    Write-Host ""
+    Write-Rule
+
+    $audienceMap = @{ public="Public users"; internal="Internal / team"; b2b="B2B clients"; mobile="Mobile app users" }
+    $deployMap   = @{ cloud="Cloud (managed)"; "on-prem"="On-premises"; edge="Edge / CDN"; "mobile-store"="Mobile store"; desktop="Desktop install" }
+    $scaleMap    = @{ personal="Personal"; "small-team"="Small team"; growth="Growth"; enterprise="Enterprise" }
+
+    # ── Project Summary ─────────────────────────────────────────────────────────
+    Write-Host "  $(hi "PROJECT")"
+    $typeDisplay = if ($Project.SecondaryTypeId) {
+        "$($Project.TypeLabel) + $($Project.SecondaryTypeLabel)"
+    } else { $Project.TypeLabel }
+    Write-Host "    $($Project.Name) $(dim "($typeDisplay)")"
+    Write-Host "    Mode: $($Project.Mode) | Stack: $(if ($Project.Stack) { $Project.Stack -join ', ' } else { 'not specified' })"
+    Write-Host ""
+
+    # ── Intake ───────────────────────────────────────────────────────────────────
+    Write-Host "  $(hi "INTAKE")"
+    $aud = if ($audienceMap[$Project.Audience]) { $audienceMap[$Project.Audience] } else { "not set" }
+    $dep = if ($deployMap[$Project.DeploymentTarget]) { $deployMap[$Project.DeploymentTarget] } else { "not set" }
+    $scl = if ($scaleMap[$Project.ScaleProfile]) { $scaleMap[$Project.ScaleProfile] } else { "not set" }
+    $auth = if ($Project.NeedsAuth) { ok "Required" } else { dim "None" }
+    Write-Host "    Audience: $aud | Auth: $auth | Deploy: $dep"
+    Write-Host "    Scale: $scl"
+    Write-Host ""
+
+    # ── Agents ───────────────────────────────────────────────────────────────────
+    Write-Host "  $(hi "AGENTS") ($($Agents.Count))"
+    $agentNames = ($Agents | ForEach-Object { $_.name }) -join ", "
+    Write-Host "    $agentNames"
+    Write-Host ""
+
+    # ── Skills with explainability ─────────────────────────────────────────────
+    Write-Host "  $(hi "SKILLS") ($($Skills.Count) inferred)"
+    foreach ($s in $Skills) {
+        $conf = if ($s.Confidence) { $s.Confidence } else { 1 }
+        $dots = ""
+        for ($i = 1; $i -le 5; $i++) {
+            $dots += if ($i -le $conf) { "●" } else { "○" }
+        }
+        $cat = if ($s.category) { $s.category } else { "?" }
+        $triggerInfo = ""
+        if ($s.TriggerMatches -and $s.TriggerMatches.Count -gt 0) {
+            $triggerInfo = " ← ""$($s.TriggerMatches -join '", "')"""
+        }
+        Write-Host "    $(dim $dots) $($s.name) $(dim "[$cat]")$triggerInfo"
+    }
+    Write-Host ""
+
+    # ── Files to generate ───────────────────────────────────────────────────────
+    Write-Host "  $(hi "FILES") (18 files)"
+    Write-Host "    CONTEXT.md, TASKS.md, DOMAIN.md, WORKSTREAMS.md"
+    Write-Host "    SECURITY.md, QUALITY.md, OBSERVABILITY.md, ENVIRONMENTS.md"
+    Write-Host "    agents/, skills/, scratchpads/, memory/"
+    Write-Host ""
+
+    Write-Rule
+    Write-Host ""
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # REVIEW SCREEN
 # ═══════════════════════════════════════════════════════════════════════════════
 function Show-Review {
@@ -4963,400 +5368,723 @@ if ($DryRun) {
     Write-Host ""
 }
 
+# ── Workflow Mode Selection ─────────────────────────────────────────────────────
+function Select-WorkflowMode {
+    Clear-Host
+    Write-Host ""
+    Write-Host "  $BRAND$($C.Bold)Msingi$($C.Reset)  $($C.Gray)v$VERSION  ·  Context Engineering$($C.Reset)"
+    Write-Host ""
+    Write-Host "  Select workflow mode:$($C.Reset)"
+    Write-Host ""
+    Write-Host "  $(dim "·" * 3)$(hi " Quick")      $(dim "— fastest, 3 questions")$(dim "|")"
+    Write-Host "  $(dim "·" * 3)$(hi " Guided")    $(dim "— balanced, 7 steps")$(dim "|")" 
+    Write-Host "  $(dim "·" * 3)$(hi " Advanced")  $(dim "— full control, 12+ options")$(dim "|")"
+    Write-Host ""
+    
+    $modeItems = @(
+        "Quick Mode      — 3 questions, fastest scaffold"
+        "Guided Mode    — 7 steps, balanced experience"
+        "Advanced Mode  — 12+ options, full control"
+    )
+    
+    $modeIdx = Read-Choice -Items $modeItems -Selected 0 -Prompt "Select workflow"
+    
+    $workflowMode = @("quick", "guided", "advanced")[$modeIdx]
+    return $workflowMode
+}
+
+$WORKFLOW_MODE = Select-WorkflowMode
+
+# Define step counts per mode
+$STEP_COUNTS = @{
+    "quick" = 4      # Mode, Type, Details, Review (skip Intake, Agents, Skills - use defaults)
+    "guided" = 7     # Mode, Type, Details, Intake, Agents, Skills, Review
+    "advanced" = 12  # Mode, Type, Details, Intake, Agents, Skills, + Advanced questions, Review
+}
+
+$STEP_DEFS = @{
+    "quick" = @("Mode", "Type", "Details", "Review")
+    "guided" = @("Mode", "Type", "Details", "Intake", "Agents", "Skills", "Review")
+    "advanced" = @("Mode", "Type", "Details", "Intake", "Agents", "Skills", "Auth", "Data", "Scale", "Env", "Obs", "Review")
+}
+
+$currentStepDefs = $STEP_DEFS[$WORKFLOW_MODE]
+$totalSteps = $STEP_COUNTS[$WORKFLOW_MODE]
+
 # Load data
 $allAgents        = Load-Agents
 $allSkillPatterns = Load-SkillPatterns
 
-# ── Screen 1: Mode ────────────────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 0 -Mode $mode -SectionTitle "Mode" -SectionSub "How would you like to proceed?"
+# ── Step Navigation State ────────────────────────────────────────────────────
+$stepState = @{
+    Completed = @()
+    ModeIdx = 0
+    TypeChecked = @()
+    Project = $null
+    SelectedAgents = @()
+    SelectedSkills = @()
+    QuickAgents = @()  # Default agents for Quick Mode
+    QuickSkills = @()  # Default skills for Quick Mode
+}
+$stepCompleted = @($false) * $totalSteps
 
-$modeIdx = Read-Choice -Items @(
-    "New project       — start from scratch"
-    "Existing project  — scan codebase and overlay structure"
-) -Prompt "What are we doing?"
-
-$mode = if ($modeIdx -eq 0) { "greenfield" } else { "brownfield" }
-
-# ── Screen 2: Project type ────────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 1 -Mode $mode -SectionTitle "Project type" -SectionSub "Select one or two types. Hybrid merges skill pools — primary drives architecture." -Summary @($mode)
-
-$typeLabels = @($PROJECT_TYPES | ForEach-Object {
-    # Fixed 22-char name field so descriptions align and never wrap at 80 cols
-    $name = $_.label.PadRight(22)
-    "$name  $($_.description)"
-})
-$typeChecked  = @($PROJECT_TYPES | ForEach-Object { $false })
-$typeChecked[0] = $true   # default: first item pre-selected
-
-# Enforce 1–2 selection rule
-$validSelection = $false
-while (-not $validSelection) {
-    $typeChecked = Read-Checkboxes -Items $typeLabels -Checked $typeChecked -Prompt "Project type(s)"
-    $selectedTypeCount = ($typeChecked | Where-Object { $_ }).Count
-    if ($selectedTypeCount -eq 0) {
-        Write-Warn "Select at least one type."
-    } elseif ($selectedTypeCount -gt 2) {
-        Write-Warn "Select at most two types for hybrid composition."
-    } else {
-        $validSelection = $true
+function Complete-Step {
+    param([int]$Index)
+    if ($Index -ge 0 -and $Index -lt $totalSteps -and -not $stepCompleted[$Index]) {
+        $stepCompleted[$Index] = $true
+        if ($Index -notin $stepState.Completed) {
+            $stepState.Completed += $Index
+        }
     }
 }
 
-$selectedTypeIndices = @(0..($PROJECT_TYPES.Count - 1) | Where-Object { $typeChecked[$_] })
-$selectedType        = $PROJECT_TYPES[$selectedTypeIndices[0]]
-$secondaryType       = if ($selectedTypeIndices.Count -gt 1) { $PROJECT_TYPES[$selectedTypeIndices[1]] } else { $null }
-
-if ($secondaryType) {
-    # Warn on nonsensical combos
-    $androidCombo = ($selectedType.id -eq "android" -or $secondaryType.id -eq "android")
-    $bothMobile   = ($selectedType.id -eq "android" -and $secondaryType.id -eq "android")
-    if ($androidCombo -and -not $bothMobile) {
-        Write-Warn "Android + $( if ($selectedType.id -eq "android") { $secondaryType.label } else { $selectedType.label } ) is an unusual combination."
-        Write-Info "Android scaffold is self-contained. Secondary type skills will still be merged."
-        Write-Host ""
+function Can-Proceed-To {
+    param([int]$TargetStep)
+    if ($TargetStep -le 0) { return $true }
+    for ($i = 0; $i -lt $TargetStep; $i++) {
+        if (-not $stepCompleted[$i]) { return $false }
     }
-    Write-Host "  $(ok "✓") Hybrid: $($selectedType.label)  $(dim "+")  $($secondaryType.label)"
-} else {
-    Write-Host "  $(ok "✓") $($selectedType.label)"
-}
-Write-Host ""
-
-# ── Screen 3: Project details ─────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 2 -Mode $mode -SectionTitle "Project details" -Summary @($mode, $selectedType.label)
-Write-Section "Project details"
-
-$project = [ordered]@{
-    Mode               = $mode
-    TypeId             = $selectedType.id
-    TypeLabel          = $selectedType.label
-    SecondaryTypeId    = if ($secondaryType) { $secondaryType.id }    else { "" }
-    SecondaryTypeLabel = if ($secondaryType) { $secondaryType.label } else { "" }
-    Name               = ""
-    Description        = ""
-    Stack              = @()
-    Milestone          = "v1.0 release"
-    # Smart intake answers — populated in Screen 4
-    Audience           = ""   # "public" | "internal" | "b2b" | "mobile"
-    NeedsAuth          = $true
-    HandlesSensitiveData = $false
-    DeploymentTarget   = ""   # "cloud" | "on-prem" | "edge" | "mobile-store" | "desktop"
-    ScaleProfile       = ""   # "personal" | "small-team" | "growth" | "enterprise"
+    return $true
 }
 
-if ($mode -eq "brownfield") {
-    $defaultScan = if ($Path) { $Path } else { (Get-Location).Path }
-    $scanInput   = Read-Line "Directory to scan" $defaultScan
-    $scanInput   = [System.Environment]::ExpandEnvironmentVariables($scanInput) -replace "^~", $env:USERPROFILE
-    if (-not (Test-Path $scanInput)) { Write-Fail "Directory not found: $scanInput"; exit 1 }
-
-    $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $false
-    $goDeep  = Read-Confirm "Run deeper scan? (slower, more thorough)" $false
-    if ($goDeep) { $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $true }
-
-    Write-Host "  $(dim "Scan complete — review and edit inferred values.")"
+function Show-StepMenu {
+    param([int]$CurrentStep)
     Write-Host ""
-    $project.Name        = Read-Line "Project name"    $scanned.Name
-    $project.Description = Read-Line "Description"     $scanned.Description "(edit or confirm)"
-    $stackStr            = Read-Line "Stack"            ($scanned.Stack -join ", ") "(edit freely)"
-    $project.Stack       = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
-    $project.Milestone   = Read-Line "Current milestone" $scanned.Milestone
-    $project.TargetPath  = $scanInput
-} else {
-    $project.Name = Read-Line "Project name" "" "(e.g. xdagee-web)"
-    if (-not $project.Name) { Write-Fail "Project name is required."; exit 1 }
-    $project.Description = Read-Line "Description" "" "(one sentence — what it does and who it's for)"
-    $stackStr = Read-Line "Stack" "" "(e.g. PHP, MySQL, Tailwind CSS — or Kotlin, Jetpack Compose)"
-    $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
-    $project.Milestone = Read-Line "First milestone" "v1.0 release" "(e.g. Auth & core API, Play Store release, v1.0 release)"
-    $defaultTarget = if ($Path) { $Path } else { Join-Path (Get-Location).Path $project.Name }
-    $targetInput   = Read-Line "Target directory" $defaultTarget
-    $project.TargetPath = [System.Environment]::ExpandEnvironmentVariables($targetInput) -replace "^~", $env:USERPROFILE
-}
-
-# ── Screen 4: Smart intake ───────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 3 -Mode $mode -SectionTitle "Smart intake" -SectionSub "A few targeted questions to sharpen your scaffold." -Summary @($project.Name, $project.TypeLabel, $mode)
-
-# Q1 — Audience
-$audienceIdx = Read-Choice -Items @(
-    "Public users        — anyone on the internet"
-    "Internal team       — employees or developers only"
-    "B2B clients         — other companies / API consumers"
-    "Mobile app users    — primarily iOS or Android"
-) -Prompt "Who is the primary audience?"
-
-$project.Audience = @("public","internal","b2b","mobile")[$audienceIdx]
-Write-Host ""
-
-# Q2 — Auth (skip for Android — auth is always required)
-if ($project.TypeId -ne "android") {
-    $authIdx = Read-Choice -Items @(
-        "Yes — users or services must authenticate"
-        "No  — fully public or pre-authenticated environment"
-    ) -Prompt "Does this system require authentication?"
-    $project.NeedsAuth = ($authIdx -eq 0)
-} else {
-    $project.NeedsAuth = $true
-    Write-Info "Auth: required (Android — defaulting to Yes)"
-}
-Write-Host ""
-
-# Q3 — Sensitive data
-Write-Host "  $(hi "?") What sensitive data will this system handle? $(dim "(Space toggle · Enter confirm)")"
-Write-Host ""
-$sensitiveItems   = @(
-    "PII  — names, emails, addresses, identity"
-    "Payment data  — cards, bank details, billing"
-    "Health / medical data"
-    "None — no sensitive data"
-)
-$sensitiveChecked = @($false, $false, $false, $true)   # default: None
-$sensitiveChecked = Read-Checkboxes -Items $sensitiveItems -Checked $sensitiveChecked -Prompt "Sensitive data"
-
-# If any of PII/Payment/Health selected, unset None
-$anySelected = $sensitiveChecked[0] -or $sensitiveChecked[1] -or $sensitiveChecked[2]
-if ($anySelected) { $sensitiveChecked[3] = $false }
-if ($sensitiveChecked[3]) { $project.HandlesSensitiveData = $false }
-else {
-    $project.HandlesSensitiveData = $true
-    $tags = @()
-    if ($sensitiveChecked[0]) { $tags += "PII" }
-    if ($sensitiveChecked[1]) { $tags += "payment" }
-    if ($sensitiveChecked[2]) { $tags += "health" }
-    $project | Add-Member -NotePropertyName SensitiveDataTags -NotePropertyValue ($tags -join ", ") -Force
-}
-Write-Host ""
-
-# Q4 — Deployment target
-$deployIdx = Read-Choice -Items @(
-    "Cloud (managed)    — AWS, GCP, Azure, Vercel, Render, etc."
-    "On-premises        — self-hosted, private datacenter"
-    "Edge / CDN         — Cloudflare Workers, Lambda@Edge, Deno Deploy"
-    "Mobile store       — Google Play / Apple App Store"
-    "Desktop install    — Windows / macOS / Linux app"
-) -Prompt "Where will this be deployed?"
-
-$project.DeploymentTarget = @("cloud","on-prem","edge","mobile-store","desktop")[$deployIdx]
-Write-Host ""
-
-# Q5 — Scale profile
-$scaleIdx = Read-Choice -Items @(
-    "Personal / side project   — <10 users, no SLA"
-    "Small team                — 10–500 users, basic availability"
-    "Growth                    — 500–50k users, 99.9% uptime target"
-    "Enterprise                — 50k+ users, SLA, compliance requirements"
-) -Prompt "What is the expected scale?"
-
-$project.ScaleProfile = @("personal","small-team","growth","enterprise")[$scaleIdx]
-Write-Host ""
-
-# Echo a concise intake summary
-Write-Host "  $(ok "✓") Intake complete"
-Write-Host ""
-$audienceLabel = @("Public","Internal","B2B","Mobile")[$audienceIdx]
-$scaleLabel    = @("Personal","Small team","Growth","Enterprise")[$scaleIdx]
-$deployLabel   = @("Cloud","On-premises","Edge","Mobile store","Desktop")[$deployIdx]
-$authLabel     = if ($project.NeedsAuth) { "Yes" } else { "No" }
-$dataLabel     = if ($project.HandlesSensitiveData) { $project.SensitiveDataTags } else { "None" }
-Write-Info "Audience: $audienceLabel  ·  Auth: $authLabel  ·  Sensitive data: $dataLabel"
-Write-Info "Deployment: $deployLabel  ·  Scale: $scaleLabel"
-Write-Host ""
-
-# ── Screen 5: Agents ──────────────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 4 -Mode $mode -SectionTitle "Agents" -SectionSub "Select which agents will work on this project." -Summary @($project.Name, $project.TypeLabel)
-Write-Section "Agents" "Choose which AI coding agents will work on this project."
-Write-Host ""
-
-$agentLabels  = @($allAgents | ForEach-Object { "$($_.name)  $(dim "· $($_.file)")" })
-$agentChecked = @($allAgents | ForEach-Object { $true })
-$agentChecked = Read-Checkboxes -Items $agentLabels -Checked $agentChecked -Prompt "Select agents"
-
-$selectedAgents = [System.Collections.Generic.List[object]]::new()
-for ($i = 0; $i -lt $allAgents.Count; $i++) {
-    if ($agentChecked[$i]) { $selectedAgents.Add($allAgents[$i]) }
-}
-
-Write-Host ""
-$addCustom = Read-Confirm "Add a custom agent?" $false
-while ($addCustom) {
-    $cName = Read-Line "Agent name"  "" "(e.g. My Custom Agent)"
-    $cFile = Read-Line "Config file" "" "(e.g. MYAGENT.md)"
-    $cDocs = Read-Line "Docs URL"    "" "(optional)"
-    if ($cName -and $cFile) {
-        $cId = $cName.ToLower() -replace "\s+","-" -replace "[^a-z0-9\-]",""
-        $selectedAgents.Add([PSCustomObject]@{
-            id=          $cId; name=$cName; file=$cFile
-            scratchpad=  $cId; description="Custom agent"
-            docsUrl=     if ($cDocs) { $cDocs } else { "" }
-        })
-        Write-Done "Added: $cName"
-    }
-    $addCustom = Read-Confirm "Add another?" $false
-}
-
-Write-Host ""
-$editDocs = Read-Confirm "Review agent docs URLs?" $false
-if ($editDocs) {
-    foreach ($a in $selectedAgents) {
-        $newUrl = Read-Line "$($a.name) docs URL" $a.docsUrl
-        if ($newUrl) { $a.docsUrl = $newUrl }
-    }
-}
-
-# ── Screen 5: Skills ──────────────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 5 -Mode $mode -SectionTitle "Skills" -SectionSub "Inferred from description, stack, and intake." -Summary @($project.Name, $project.TypeLabel, "$($selectedAgents.Count) agents")
-Write-Section "Skills" "Inferred from your description, stack, and intake answers."
-
-# Build haystack: description + stack + type + intake signals
-$intakeSignals  = @(
-    $project.Audience
-    $project.DeploymentTarget
-    $project.ScaleProfile
-    if ($project.NeedsAuth)            { "auth login" }
-    if ($project.HandlesSensitiveData) { "sensitive data security encryption" }
-) | Where-Object { $_ }
-
-$haystack       = "$($project.Description) $(if ($project.Stack) { $project.Stack -join ' ' } else { '' }) $($project.TypeLabel) $($intakeSignals -join ' ')"
-
-# Merge skill type scope for hybrid projects
-$inferTypeId    = $project.TypeId
-if ($project.SecondaryTypeId) {
-    # Run inference for both types, merge deduplicated
-    $primary   = Invoke-SkillInference -Haystack $haystack -TypeId $project.TypeId        -Patterns $allSkillPatterns
-    $secondary = Invoke-SkillInference -Haystack $haystack -TypeId $project.SecondaryTypeId -Patterns $allSkillPatterns
-    $seen = [System.Collections.Generic.HashSet[string]]::new()
-    $merged = [System.Collections.Generic.List[object]]::new()
-    foreach ($s in ($primary + $secondary)) {
-        if ($seen.Add($s.id)) { $merged.Add($s) }
-        if ($merged.Count -ge $MAX_SKILLS) { break }
-    }
-    $inferredSkills = $merged
-} else {
-    $inferredSkills = Invoke-SkillInference -Haystack $haystack -TypeId $project.TypeId -Patterns $allSkillPatterns
-}
-$selectedSkills = Invoke-SkillsReview  -InferredSkills $inferredSkills
-
-# ── Screen 6: Review + confirm ────────────────────────────────────────────────
-Write-TwoColumn -StepIndex 6 -Mode $mode -SectionTitle "Review" -SectionSub "Confirm your project configuration before generating." -Summary @($project.Name, $project.TypeLabel, "$($selectedAgents.Count) agents", "$($selectedSkills.Count) skills")
-Write-Section "Review" "Confirm everything before generation begins."
-Show-Review -Project $project -Agents $selectedAgents -Skills $selectedSkills
-
-$initGit   = Read-Confirm "Initialise git repository?" $true
-$confirmed = Read-Confirm "Generate project?" $true
-
-if (-not $confirmed) {
+    Write-Host "  $(hi "?") Jump to step: $(dim "(Tab to cycle, Enter to go, Esc to stay)")"
     Write-Host ""
-    Write-Info "Aborted. Nothing written."
+    for ($i = 0; $i -lt $totalSteps; $i++) {
+        $label = $currentStepDefs[$i]
+        $prefix = "     "
+        if ($i -eq $CurrentStep) {
+            $prefix = " $(hi "▶")"
+        } elseif ($stepCompleted[$i]) {
+            $prefix = " $(ok "✓")"
+        } else {
+            $prefix = " $(dim "·")"
+        }
+        $status = if ($stepCompleted[$i]) { "$(dim "done")" } elseif ($i -eq $CurrentStep) { "$(hi "current")" } else { "$(dim "pending")" }
+        Write-Host "  $prefix  $(bold $label)  $(dim $status)"
+    }
     Write-Host ""
-    exit 0
 }
 
-# Guard existing directory
-if ($mode -eq "greenfield" -and (Test-Path $project.TargetPath)) {
+$currentStep = 0
+$exitLoop = $false
+
+# Quick Mode defaults
+if ($WORKFLOW_MODE -eq "quick") {
+    $stepState.QuickAgents = @($allAgents | ForEach-Object { $true })
+    $stepState.QuickSkills = @()
+}
+
+while ($currentStep -lt $totalSteps) {
+    $stepName = $currentStepDefs[$currentStep]
+    switch ($stepName) {
+        "Mode" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Mode" -SectionSub "How would you like to proceed?"
+            $defaultIdx = if ($stepState.ModeIdx -ge 0) { $stepState.ModeIdx } else { 0 }
+            $modeIdx = Read-Choice -Items @(
+                "New project       — start from scratch"
+                "Existing project  — scan codebase and overlay structure"
+            ) -Selected $defaultIdx -Prompt "What are we doing?"
+            
+            if ($modeIdx -eq -4) { # G (Goto)
+                Show-StepMenu -CurrentStep $currentStep
+                $jumpTo = Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"
+                if ($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])) { $currentStep = $jumpTo }
+                continue
+            }
+            if ($modeIdx -eq -1 -or $modeIdx -eq -3) { # Esc or Prev
+                if (Read-Confirm "Exit Msingi?" $false) { exit 0 }
+                continue
+            }
+            if ($modeIdx -ge 0 -or $modeIdx -eq -2) { # Selected or Next
+                $idx = if ($modeIdx -eq -2) { $defaultIdx } else { $modeIdx }
+                $stepState.ModeIdx = $idx
+                $mode = if ($idx -eq 0) { "greenfield" } else { "brownfield" }
+                Complete-Step -Index $currentStep
+                $currentStep++
+            }
+        }
+        "Type" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Project type" -SectionSub "Select one or two types. Hybrid merges skill pools — primary drives architecture." -Summary @($mode)
+            $typeLabels = @($PROJECT_TYPES | ForEach-Object {
+                $name = $_.label.PadRight(22)
+                "$name  $($_.description)"
+            })
+            if ($stepState.TypeChecked.Count -eq 0) {
+                $typeChecked = @($PROJECT_TYPES | ForEach-Object { $false })
+                $typeChecked[0] = $true
+            } else {
+                $typeChecked = $stepState.TypeChecked
+            }
+            $validSelection = $false
+            while (-not $validSelection) {
+                $typeChecked = Read-Checkboxes -Items $typeLabels -Checked $typeChecked -Prompt "Project type(s)"
+                if ($typeChecked -is [int]) {
+                    if ($typeChecked -eq -4) { # G (Goto)
+                        Show-StepMenu -CurrentStep $currentStep
+                        $jumpTo = Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"
+                        if ($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])) { $currentStep = $jumpTo }
+                        $exitWhile = $true; break
+                    }
+                    if ($typeChecked -eq -1 -or $typeChecked -eq -3) { $currentStep--; $exitWhile = $true; break }
+                    if ($typeChecked -eq -2) { $validSelection = $true; break }
+                }
+                if ($typeChecked -eq $null) { $currentStep--; $exitWhile = $true; break }
+                
+                $selectedTypeCount = ($typeChecked | Where-Object { $_ }).Count
+                if ($selectedTypeCount -eq 0) {
+                    Write-Warn "Select at least one type."
+                } elseif ($selectedTypeCount -gt 2) {
+                    Write-Warn "Select at most two types for hybrid composition."
+                } else {
+                    $validSelection = $true
+                }
+            }
+            if ($exitWhile) { $exitWhile = $false; continue }
+            $stepState.TypeChecked = $typeChecked
+            $selectedTypeIndices = @(0..($PROJECT_TYPES.Count - 1) | Where-Object { $typeChecked[$_] })
+            $selectedType = $PROJECT_TYPES[$selectedTypeIndices[0]]
+            $secondaryType = if ($selectedTypeIndices.Count -gt 1) { $PROJECT_TYPES[$selectedTypeIndices[1]] } else { $null }
+            if ($secondaryType) {
+                $androidCombo = ($selectedType.id -eq "android" -or $secondaryType.id -eq "android")
+                $bothMobile = ($selectedType.id -eq "android" -and $secondaryType.id -eq "android")
+                if ($androidCombo -and -not $bothMobile) {
+                    Write-Warn "Android + $( if ($selectedType.id -eq "android") { $secondaryType.label } else { $selectedType.label } ) is an unusual combination."
+                    Write-Info "Android scaffold is self-contained. Secondary type skills will still be merged."
+                    Write-Host ""
+                }
+                Write-Host "  $(ok "✓") Hybrid: $($selectedType.label)  $(dim "+")  $($secondaryType.label)"
+            } else {
+                Write-Host "  $(ok "✓") $($selectedType.label)"
+            }
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Details" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Project details" -Summary @($mode, $selectedType.label)
+            Write-Section "Project details"
+            if ($null -eq $stepState.Project) {
+                $project = [ordered]@{
+                    Mode = $mode
+                    TypeId = $selectedType.id
+                    TypeLabel = $selectedType.label
+                    SecondaryTypeId = if ($secondaryType) { $secondaryType.id } else { "" }
+                    SecondaryTypeLabel = if ($secondaryType) { $secondaryType.label } else { "" }
+                    Name = ""
+                    Description = ""
+                    Stack = @()
+                    Milestone = "v1.0 release"
+                    Audience = ""
+                    NeedsAuth = $true
+                    HandlesSensitiveData = $false
+                    DeploymentTarget = ""
+                    ScaleProfile = ""
+                }
+            } else {
+                $project = $stepState.Project
+            }
+            if ($mode -eq "brownfield") {
+                $defaultScan = if ($Path) { $Path } else { (Get-Location).Path }
+                $scanInput = Read-Line "Directory to scan" $defaultScan
+                if ($null -eq $scanInput) { $currentStep--; continue }
+                if ($scanInput -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+
+                $scanInput = [System.Environment]::ExpandEnvironmentVariables($scanInput) -replace "^~", $env:USERPROFILE
+                if (-not (Test-Path $scanInput)) { Write-Fail "Directory not found: $scanInput"; exit 1 }
+                $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $false
+                $goDeep = Read-Confirm "Run deeper scan? (slower, more thorough)" $false
+                if ($goDeep -eq $null) { $currentStep--; continue }
+                if ($goDeep) { $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $true }
+                Write-Host "  $(dim "Scan complete — review and edit inferred values.")"
+                Write-Host ""
+                $project.Name = Read-Line "Project name" $scanned.Name
+                if ($project.Name -eq $null) { $currentStep--; continue }
+                $project.Description = Read-Line "Description" $scanned.Description "(edit or confirm)"
+                if ($project.Description -eq $null) { $currentStep--; continue }
+                $stackStr = Read-Line "Stack" ($scanned.Stack -join ", ") "(edit freely)"
+                if ($stackStr -eq $null) { $currentStep--; continue }
+                $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
+                $project.Milestone = Read-Line "Current milestone" $scanned.Milestone
+                if ($project.Milestone -eq $null) { $currentStep--; continue }
+                $project.TargetPath = $scanInput
+            } else {
+                $project.Name = Read-Line "Project name" $project.Name "(e.g. xdagee-web)"
+                if ($project.Name -eq $null) { $currentStep--; continue }
+                if (-not $project.Name) { Write-Fail "Project name is required."; exit 1 }
+                $project.Description = Read-Line "Description" $project.Description "(one sentence — what it does and who it's for)"
+                if ($project.Description -eq $null) { $currentStep--; continue }
+                $stackStr = Read-Line "Stack" ($project.Stack -join ", ") "(e.g. PHP, MySQL, Tailwind CSS — or Kotlin, Jetpack Compose)"
+                if ($stackStr -eq $null) { $currentStep--; continue }
+                $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
+                $project.Milestone = Read-Line "First milestone" $project.Milestone "(e.g. Auth & core API, Play Store release, v1.0 release)"
+                if ($project.Milestone -eq $null) { $currentStep--; continue }
+                $defaultTarget = if ($Path) { $Path } else { Join-Path (Get-Location).Path $project.Name }
+                $targetInput = Read-Line "Target directory" $defaultTarget
+                if ($targetInput -eq $null) { $currentStep--; continue }
+                $project.TargetPath = [System.Environment]::ExpandEnvironmentVariables($targetInput) -replace "^~", $env:USERPROFILE
+            }
+            $stepState.Project = $project
+            Complete-Step -Index 2
+            
+            # Quick Mode: skip Intake, Agents, Skills and go to Review
+            if ($WORKFLOW_MODE -eq "quick") {
+                # Apply Quick Mode defaults
+                $project.Audience = "public"
+                $project.NeedsAuth = $true
+                $project.HandlesSensitiveData = $false
+                $project.DeploymentTarget = "cloud"
+                $project.ScaleProfile = "personal"
+                
+                # Select all agents by default
+                $selectedAgents = $allAgents
+                
+                # Infer skills for Quick Mode
+                $intakeSignals = @("public", "cloud", "personal", "auth login")
+                $haystack = "$($project.Description) $(if ($project.Stack) { $project.Stack -join ' ' } else { '' }) $($project.TypeLabel) $($intakeSignals -join ' ')"
+                $inferredSkills = Invoke-SkillInference -Haystack $haystack -TypeId $project.TypeId -Patterns $allSkillPatterns
+                
+                $stepState.QuickSkills = $inferredSkills
+                $stepState.SelectedAgents = @($allAgents | ForEach-Object { $true })
+                
+                # Go directly to Review (step 3 in Quick Mode)
+                $currentStep++
+            } else {
+                $currentStep++
+            }
+        }
+        "Intake" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Smart intake" -SectionSub "A few targeted questions to sharpen your scaffold." -Summary @($project.Name, $project.TypeLabel, $mode)
+            $audienceIdx = Read-Choice -Items @(
+                "Public users        — anyone on the internet"
+                "Internal team       — employees or developers only"
+                "B2B clients         — other companies / API consumers"
+                "Mobile app users    — primarily iOS or Android"
+            ) -Selected ($stepState.Project.AudienceIdx -ge 0 ? $stepState.Project.AudienceIdx : 0) -Prompt "Who is the primary audience?"
+            if ($audienceIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($audienceIdx -lt 0) { $currentStep--; continue }
+            $project.Audience = @("public","internal","b2b","mobile")[$audienceIdx]
+            $stepState.Project.AudienceIdx = $audienceIdx
+            
+            # If Advanced Mode, we move to separate steps for Auth, Data, Scale
+            if ($WORKFLOW_MODE -eq "advanced") {
+                Write-Host ""
+                Write-Host "  $(ok "✓") Audience recorded"
+                Complete-Step -Index $currentStep
+                $currentStep++
+                continue
+            }
+            
+            Write-Host ""
+            if ($project.TypeId -ne "android") {
+                $authIdx = Read-Choice -Items @(
+                    "Yes — users or services must authenticate"
+                    "No  — fully public or pre-authenticated environment"
+                ) -Selected ($stepState.Project.AuthIdx -ge 0 ? $stepState.Project.AuthIdx : 0) -Prompt "Does this system require authentication?"
+                if ($authIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+                if ($authIdx -lt 0) { $currentStep--; continue }
+                $project.NeedsAuth = ($authIdx -eq 0)
+                $stepState.Project.AuthIdx = $authIdx
+            } else {
+                $project.NeedsAuth = $true
+                Write-Info "Auth: required (Android — defaulting to Yes)"
+            }
+            Write-Host ""
+            Write-Host "  $(hi "?") What sensitive data will this system handle? $(dim "(Space toggle · Enter confirm)")"
+            Write-Host ""
+            $sensitiveItems = @(
+                "PII  — names, emails, addresses, identity"
+                "Payment data  — cards, bank details, billing"
+                "Health / medical data"
+                "None — no sensitive data"
+            )
+            $sensitiveChecked = if ($stepState.Project.SensitiveChecked) { $stepState.Project.SensitiveChecked } else { @($false, $false, $false, $true) }
+            $sensitiveChecked = Read-Checkboxes -Items $sensitiveItems -Checked $sensitiveChecked -Prompt "Sensitive data"
+            if ($sensitiveChecked -is [int]) {
+                if ($sensitiveChecked -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+                $currentStep--; continue
+            }
+            if ($sensitiveChecked -eq $null) { $currentStep--; continue }
+            $anySelected = $sensitiveChecked[0] -or $sensitiveChecked[1] -or $sensitiveChecked[2]
+            if ($anySelected) { $sensitiveChecked[3] = $false }
+            if ($sensitiveChecked[3]) { $project.HandlesSensitiveData = $false }
+            else {
+                $project.HandlesSensitiveData = $true
+                $tags = @()
+                if ($sensitiveChecked[0]) { $tags += "PII" }
+                if ($sensitiveChecked[1]) { $tags += "payment" }
+                if ($sensitiveChecked[2]) { $tags += "health" }
+                $project | Add-Member -NotePropertyName SensitiveDataTags -NotePropertyValue ($tags -join ", ") -Force
+            }
+            $stepState.Project.SensitiveChecked = $sensitiveChecked
+            Write-Host ""
+            $deployIdx = Read-Choice -Items @(
+                "Cloud (managed)    — AWS, GCP, Azure, Vercel, Render, etc."
+                "On-premises        — self-hosted, private datacenter"
+                "Edge / CDN         — Cloudflare Workers, Lambda@Edge, Deno Deploy"
+                "Mobile store       — Google Play / Apple App Store"
+                "Desktop install    — Windows / macOS / Linux app"
+            ) -Selected ($stepState.Project.DeployIdx -ge 0 ? $stepState.Project.DeployIdx : 0) -Prompt "Where will this be deployed?"
+            if ($deployIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($deployIdx -lt 0) { $currentStep--; continue }
+            $project.DeploymentTarget = @("cloud","on-prem","edge","mobile-store","desktop")[$deployIdx]
+            $stepState.Project.DeployIdx = $deployIdx
+            Write-Host ""
+            $scaleIdx = Read-Choice -Items @(
+                "Personal / side project   — <10 users, no SLA"
+                "Small team                — 10–500 users, basic availability"
+                "Growth                    — 500–50k users, 99.9% uptime target"
+                "Enterprise                — 50k+ users, SLA, compliance requirements"
+            ) -Selected ($stepState.Project.ScaleIdx -ge 0 ? $stepState.Project.ScaleIdx : 0) -Prompt "What is the expected scale?"
+            if ($scaleIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($scaleIdx -lt 0) { $currentStep--; continue }
+            $project.ScaleProfile = @("personal","small-team","growth","enterprise")[$scaleIdx]
+            $stepState.Project.ScaleIdx = $scaleIdx
+            Write-Host ""
+            Write-Host "  $(ok "✓") Intake complete"
+            Write-Host ""
+            $audienceLabel = @("Public","Internal","B2B","Mobile")[$audienceIdx]
+            $scaleLabel = @("Personal","Small team","Growth","Enterprise")[$scaleIdx]
+            $deployLabel = @("Cloud","On-premises","Edge","Mobile store","Desktop")[$deployIdx]
+            $authLabel = if ($project.NeedsAuth) { "Yes" } else { "No" }
+            $dataLabel = if ($project.HandlesSensitiveData) { $project.SensitiveDataTags } else { "None" }
+            Write-Info "Audience: $audienceLabel  ·  Auth: $authLabel  ·  Sensitive data: $dataLabel"
+            Write-Info "Deployment: $deployLabel  ·  Scale: $scaleLabel"
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Auth" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Authentication" -SectionSub "Control access to your system." -Summary @($project.Name, $project.TypeLabel)
+            if ($project.TypeId -eq "android") {
+                $project.NeedsAuth = $true
+                Write-Info "Auth: required (Android — defaulting to Yes)"
+            } else {
+                $authIdx = Read-Choice -Items @(
+                    "Yes — users or services must authenticate"
+                    "No  — fully public or pre-authenticated environment"
+                ) -Selected ($stepState.Project.AuthIdx -ge 0 ? $stepState.Project.AuthIdx : 0) -Prompt "Does this system require authentication?"
+                if ($authIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+                if ($authIdx -lt 0) { $currentStep--; continue }
+                $project.NeedsAuth = ($authIdx -eq 0)
+                $stepState.Project.AuthIdx = $authIdx
+            }
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Data" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Sensitive data" -SectionSub "Identify target data categories for encryption and compliance seeds." -Summary @($project.Name, $project.TypeLabel)
+            Write-Host "  $(hi "?") What sensitive data will this system handle? $(dim "(Space toggle · Enter confirm)")"
+            Write-Host ""
+            $sensitiveItems = @(
+                "PII  — names, emails, addresses, identity"
+                "Payment data  — cards, bank details, billing"
+                "Health / medical data"
+                "None — no sensitive data"
+            )
+            $sensitiveChecked = if ($stepState.Project.SensitiveChecked) { $stepState.Project.SensitiveChecked } else { @($false, $false, $false, $true) }
+            $sensitiveChecked = Read-Checkboxes -Items $sensitiveItems -Checked $sensitiveChecked -Prompt "Sensitive data"
+            if ($sensitiveChecked -is [int]) {
+                if ($sensitiveChecked -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+                $currentStep--; continue
+            }
+            if ($sensitiveChecked -eq $null) { $currentStep--; continue }
+            $anySelected = $sensitiveChecked[0] -or $sensitiveChecked[1] -or $sensitiveChecked[2]
+            if ($anySelected) { $sensitiveChecked[3] = $false }
+            if ($sensitiveChecked[3]) { $project.HandlesSensitiveData = $false }
+            else {
+                $project.HandlesSensitiveData = $true
+                $tags = @()
+                if ($sensitiveChecked[0]) { $tags += "PII" }
+                if ($sensitiveChecked[1]) { $tags += "payment" }
+                if ($sensitiveChecked[2]) { $tags += "health" }
+                $project | Add-Member -NotePropertyName SensitiveDataTags -NotePropertyValue ($tags -join ", ") -Force
+            }
+            $stepState.Project.SensitiveChecked = $sensitiveChecked
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Scale" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Scale & Deployment" -SectionSub "Infrastructure and uptime targets." -Summary @($project.Name, $project.TypeLabel)
+            $deployIdx = Read-Choice -Items @(
+                "Cloud (managed)    — AWS, GCP, Azure, Vercel, Render, etc."
+                "On-premises        — self-hosted, private datacenter"
+                "Edge / CDN         — Cloudflare Workers, Lambda@Edge, Deno Deploy"
+                "Mobile store       — Google Play / Apple App Store"
+                "Desktop install    — Windows / macOS / Linux app"
+            ) -Selected ($stepState.Project.DeployIdx -ge 0 ? $stepState.Project.DeployIdx : 0) -Prompt "Where will this be deployed?"
+            if ($deployIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($deployIdx -lt 0) { $currentStep--; continue }
+            $project.DeploymentTarget = @("cloud","on-prem","edge","mobile-store","desktop")[$deployIdx]
+            $stepState.Project.DeployIdx = $deployIdx
+            Write-Host ""
+            $scaleIdx = Read-Choice -Items @(
+                "Personal / side project   — <10 users, no SLA"
+                "Small team                — 10–500 users, basic availability"
+                "Growth                    — 500–50k users, 99.9% uptime target"
+                "Enterprise                — 50k+ users, SLA, compliance requirements"
+            ) -Selected ($stepState.Project.ScaleIdx -ge 0 ? $stepState.Project.ScaleIdx : 0) -Prompt "What is the expected scale?"
+            if ($scaleIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($scaleIdx -lt 0) { $currentStep--; continue }
+            $project.ScaleProfile = @("personal","small-team","growth","enterprise")[$scaleIdx]
+            $stepState.Project.ScaleIdx = $scaleIdx
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Env" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Environment" -SectionSub "Configuration management strategy." -Summary @($project.Name, $project.TypeLabel)
+            $envIdx = Read-Choice -Items @(
+                "Standard .env / local config"
+                "Secret manager (AWS, Vault, etc.)"
+                "Compile-time constants (Android)"
+            ) -Selected 0 -Prompt "How will secrets be managed?"
+            if ($envIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($envIdx -lt 0) { $currentStep--; continue }
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Obs" {
+            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Observability" -SectionSub "Logging, telemetry, and health monitoring." -Summary @($project.Name, $project.TypeLabel)
+            $obsIdx = Read-Choice -Items @(
+                "Standard logging (stdout/syslog)"
+                "Centralized (ELK, Datadog, etc.)"
+                "Sentry / Crashlytics (Error tracking)"
+            ) -Selected 0 -Prompt "Primary observability focus?"
+            if ($obsIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+            if ($obsIdx -lt 0) { $currentStep--; continue }
+            Write-Host ""
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Agents" {
+                Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Agents" -SectionSub "Select which agents will work on this project." -Summary @($project.Name, $project.TypeLabel)
+            Write-Section "Agents" "Choose which AI coding agents will work on this project."
+            Write-Host ""
+            $agentLabels = @($allAgents | ForEach-Object { "$($_.name)  $(dim "· $($_.file)")" })
+            $agentChecked = if ($stepState.SelectedAgents.Count -gt 0) {
+                $stepState.SelectedAgents
+            } else {
+                @($allAgents | ForEach-Object { $true })
+            }
+            $agentChecked = Read-Checkboxes -Items $agentLabels -Checked $agentChecked -Prompt "Select agents"
+            if ($agentChecked -is [int]) {
+                if ($agentChecked -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
+                $currentStep--; continue
+            }
+            if ($agentChecked -eq $null) { $currentStep--; continue }
+            $selectedAgents = [System.Collections.Generic.List[object]]::new()
+            for ($i = 0; $i -lt $allAgents.Count; $i++) {
+                if ($agentChecked[$i]) { $selectedAgents.Add($allAgents[$i]) }
+            }
+            $stepState.SelectedAgents = $agentChecked
+            Write-Host ""
+            $addCustom = Read-Confirm "Add a custom agent?" $false
+            if ($addCustom -eq $null) { $currentStep--; continue }
+            while ($addCustom) {
+                $cName = Read-Line "Agent name" "" "(e.g. My Custom Agent)"
+                if ($cName -eq $null) { continue }
+                $cFile = Read-Line "Config file" "" "(e.g. MYAGENT.md)"
+                if ($cFile -eq $null) { continue }
+                $cDocs = Read-Line "Docs URL" "" "(optional)"
+                if ($cName -and $cFile) {
+                    $cId = $cName.ToLower() -replace "\s+","-" -replace "[^a-z0-9\-]",""
+                    $selectedAgents.Add([PSCustomObject]@{
+                        id = $cId; name = $cName; file = $cFile
+                        scratchpad = $cId; description = "Custom agent"
+                        docsUrl = if ($cDocs) { $cDocs } else { "" }
+                    })
+                    Write-Done "Added: $cName"
+                }
+                $addCustom = Read-Confirm "Add another?" $false
+                if ($addCustom -eq $null) { $addCustom = $false }
+            }
+            Write-Host ""
+            $editDocs = Read-Confirm "Review agent docs URLs?" $false
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Skills" {
+                Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Skills" -SectionSub "Inferred from description, stack, and intake." -Summary @($project.Name, $project.TypeLabel, "$($selectedAgents.Count) agents")
+            Write-Section "Skills" "Inferred from your description, stack, and intake answers."
+            $intakeSignals = @(
+                $project.Audience
+                $project.DeploymentTarget
+                $project.ScaleProfile
+                if ($project.NeedsAuth) { "auth login" }
+                if ($project.HandlesSensitiveData) { "sensitive data security encryption" }
+            ) | Where-Object { $_ }
+            $haystack = "$($project.Description) $(if ($project.Stack) { $project.Stack -join ' ' } else { '' }) $($project.TypeLabel) $($intakeSignals -join ' ')"
+            $inferTypeId = $project.TypeId
+            if ($project.SecondaryTypeId) {
+                $primary = Invoke-SkillInference -Haystack $haystack -TypeId $project.TypeId -Patterns $allSkillPatterns
+                $secondary = Invoke-SkillInference -Haystack $haystack -TypeId $project.SecondaryTypeId -Patterns $allSkillPatterns
+                $seen = [System.Collections.Generic.HashSet[string]]::new()
+                $merged = [System.Collections.Generic.List[object]]::new()
+                foreach ($s in ($primary + $secondary)) {
+                    if ($seen.Add($s.id)) { $merged.Add($s) }
+                    if ($merged.Count -ge $MAX_SKILLS) { break }
+                }
+                $inferredSkills = $merged
+            } else {
+                $inferredSkills = Invoke-SkillInference -Haystack $haystack -TypeId $project.TypeId -Patterns $allSkillPatterns
+            }
+            $selectedSkills = Invoke-SkillsReview -InferredSkills $inferredSkills
+            if ($selectedSkills -is [int]) {
+                if ($selectedSkills -eq -4) { # G (Goto)
+                    Show-StepMenu -CurrentStep $currentStep
+                    $jumpTo = Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"
+                    if ($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])) { $currentStep = $jumpTo }
+                    continue
+                }
+                $currentStep--; continue
+            }
+            if ($null -eq $selectedSkills) { $currentStep--; continue }
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        "Review" {
+                Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Review" -SectionSub "Confirm your project configuration before generating." -Summary @($project.Name, $project.TypeLabel, "$($selectedAgents.Count) agents", "$($selectedSkills.Count) skills")
+            Write-Section "Review" "Confirm everything before generation begins."
+            
+            # Show Execution Plan first
+            Show-ExecutionPlan -Project $project -Agents $selectedAgents -Skills $selectedSkills -WorkflowMode $WORKFLOW_MODE
+            
+            $viewPlan = Read-Confirm "View detailed review?" $false
+            if ($null -eq $viewPlan) { $currentStep--; continue }
+            if ($viewPlan) {
+                Show-Review -Project $project -Agents $selectedAgents -Skills $selectedSkills
+            }
+            $initGit = Read-Confirm "Initialise git repository?" $true
+            if ($initGit -eq $null) { $currentStep--; continue }
+            $confirmed = Read-Confirm "Generate project?" $true
+            if ($confirmed -eq $null) { $currentStep--; continue }
+            if (-not $confirmed) {
+                Write-Host ""
+                Write-Info "Aborted. Nothing written."
+                Write-Host ""
+                exit 0
+            }
+            if ($mode -eq "greenfield" -and (Test-Path $project.TargetPath)) {
+                Write-Host ""
+                Write-Warn "Directory already exists: $($project.TargetPath)"
+                $merge = Read-Confirm "Merge into existing directory?" $false
+                if (-not $merge) { Write-Info "Aborted."; exit 0 }
+            }
+            Complete-Step -Index $currentStep
+            $currentStep++
+        }
+        default {
+            Write-Info "Step '$stepName' is not implemented yet. Skipping..."
+            $currentStep++
+        }
+    }
+}
+
+if ($currentStep -ge $totalSteps) {
+    $root = $project.TargetPath
+
+    # ── Generate ──────────────────────────────────────────────────────────────────
     Write-Host ""
-    Write-Warn "Directory already exists: $($project.TargetPath)"
-    $merge = Read-Confirm "Merge into existing directory?" $false
-    if (-not $merge) { Write-Info "Aborted."; exit 0 }
-}
+    Write-Host ""
+    Clear-Host
+    Write-Header -Mode $mode -StepLabel "generating"
+    Write-Host ""
+    Write-Section "Generating project files" "Writing scaffold to disk..."
+    Write-Host ""
 
-# ── Generate ──────────────────────────────────────────────────────────────────
-Write-Host ""
-Write-Host ""
-Clear-Host
-Write-Header -Mode $mode -StepLabel "generating"
-Write-Host ""
-Write-Section "Generating project files" "Writing scaffold to disk..."
-Write-Host ""
-
-$root = $project.TargetPath
-
-# Directories
-$dirs = @(
-    $root,
-    (Join-Path $root "agents"),
-    (Join-Path $root "skills"),
-    (Join-Path $root "memory\decisions"),
-    (Join-Path $root "src")
-)
-foreach ($a in $selectedAgents) { $dirs += Join-Path $root "scratchpads\$($a.scratchpad)" }
-if ($project.TypeId -eq "android") { $dirs += Join-Path $root "gradle\wrapper" }
-# Skill subfolders — each skill is a folder with SKILL.md, gotchas.md, scripts/, assets/, references/, outputs/
-foreach ($s in $selectedSkills) {
-    $dirs += Join-Path $root "skills\$($s.id)"
-    $dirs += Join-Path $root "skills\$($s.id)\scripts"
-    $dirs += Join-Path $root "skills\$($s.id)\assets"
-    $dirs += Join-Path $root "skills\$($s.id)\references"
-    $dirs += Join-Path $root "skills\$($s.id)\outputs"
-}
-
-if (-not $DryRun) {
-    foreach ($d in $dirs) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
-}
-Write-Done "Directory structure"
-
-# Core context files
-Emit "CONTEXT.md"      (Build-ContextMd      -Project $project -Agents $selectedAgents -Skills $selectedSkills -Type $selectedType) $root
-Emit "TASKS.md"        (Build-TasksMd        -Project $project -Skills $selectedSkills) $root
-Emit "DISCOVERY.md"    (Build-DiscoveryMd    -Project $project) $root
-Emit "WORKSTREAMS.md"  (Build-WorkstreamsMd  -Project $project -Agents $selectedAgents) $root
-Emit "DOMAIN.md"       (Build-DomainMd       -Project $project -Type $selectedType) $root
-Emit "CHANGELOG.md"    (Build-ChangelogMd    -Project $project) $root
-Emit "STRUCTURE.md"    (Build-StructureMd    -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
-Emit "README.md"       (Build-ReadmeMd       -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
-
-# Production ops files
-Emit "QUALITY.md"      (Build-QualityMd      -Project $project -Type $selectedType) $root
-Emit "SECURITY.md"     (Build-SecurityMd     -Project $project -Type $selectedType) $root
-Emit "ENVIRONMENTS.md" (Build-EnvironmentsMd -Project $project) $root
-Emit "OBSERVABILITY.md"(Build-ObservabilityMd -Project $project -Type $selectedType) $root
-
-# Gitignore
-Emit ".gitignore"      (Build-Gitignore      -Project $project) $root
-
-# Agent configs
-foreach ($a in $selectedAgents) {
-    Emit "agents\$($a.file)" (Build-AgentConfig -Agent $a -Project $project) $root
-}
-
-# Scratchpads
-foreach ($a in $selectedAgents) {
-    Emit "scratchpads\$($a.scratchpad)\SESSION.md" (Build-SessionMd -Agent $a) $root
-    Emit "scratchpads\$($a.scratchpad)\NOTES.md"   (Build-NotesMd  -Agent $a) $root
-}
-
-# Skills — each as a proper folder (SKILL.md + gotchas.md + scripts/ + assets/ + references/)
-if ($selectedSkills -and $selectedSkills.Count -gt 0) {
-    Emit "skills\README.md" (Build-SkillsReadme -Skills $selectedSkills -Project $project) $root
+    # Directories
+    $dirs = @(
+        $root,
+        (Join-Path $root "agents"),
+        (Join-Path $root "skills"),
+        (Join-Path $root "memory\decisions"),
+        (Join-Path $root "src")
+    )
+    foreach ($a in $selectedAgents) { $dirs += Join-Path $root "scratchpads\$($a.scratchpad)" }
+    if ($project.TypeId -eq "android") { $dirs += Join-Path $root "gradle\wrapper" }
+    # Skill subfolders — each skill is a folder with SKILL.md, gotchas.md, scripts/, assets/, references/, outputs/
     foreach ($s in $selectedSkills) {
-        # Main spec — entry point for the agent
-        Emit "skills\$($s.id)\SKILL.md"    (Build-SkillSpec   -Skill $s -Project $project) $root
-        # Gotchas — seeded with category-specific failure patterns
-        Emit "skills\$($s.id)\gotchas.md"  (Build-SkillGotchas -Skill $s -Project $project) $root
-        # Placeholder README in scripts/ to guide the agent
-        Emit "skills\$($s.id)\scripts\.keep" "# Add helper scripts here. Claude can run or compose these.`n# Example: validate_input.py, seed_data.sh, run_tests.ps1`n" $root
-        # outputs/ — structured results from skill executions (compressed context for future sessions)
-        Emit "skills\$($s.id)\outputs\.keep" "# Structured output records from skill executions.`n# Format: one JSON or markdown file per significant execution.`n# Agents read outputs/ instead of re-running expensive operations.`n# Example record: {date, outcome, summary, key_values}`n" $root
+        $dirs += Join-Path $root "skills\$($s.id)"
+        $dirs += Join-Path $root "skills\$($s.id)\scripts"
+        $dirs += Join-Path $root "skills\$($s.id)\assets"
+        $dirs += Join-Path $root "skills\$($s.id)\references"
+        $dirs += Join-Path $root "skills\$($s.id)\outputs"
     }
-    Write-Done "Skill folders: $($selectedSkills.Count) skills × (SKILL.md + gotchas.md + scripts/ + assets/ + references/)"
-}
 
-# Decisions seed
-Emit "memory\decisions\000-init.md" (Build-DecisionsSeed -Project $project) $root
+    if (-not $DryRun) {
+        foreach ($d in $dirs) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+    }
+    Write-Done "Directory structure"
 
-# Android-specific
-if ($project.TypeId -eq "android") {
-    Write-Host ""
-    Write-Done "Android extras:"
-    Emit "GRADLE.md"                    (Build-GradleMd          -Project $project) $root
-    Emit "gradle\libs.versions.toml"    (Build-LibsVersionsToml  -Project $project) $root
-    Emit "proguard-rules.pro"           @"
+    # Core context files
+    Emit "CONTEXT.md"      (Build-ContextMd      -Project $project -Agents $selectedAgents -Skills $selectedSkills -Type $selectedType) $root
+    Emit "TASKS.md"        (Build-TasksMd        -Project $project -Skills $selectedSkills) $root
+    Emit "DISCOVERY.md"    (Build-DiscoveryMd    -Project $project) $root
+    Emit "WORKSTREAMS.md"  (Build-WorkstreamsMd  -Project $project -Agents $selectedAgents) $root
+    Emit "DOMAIN.md"       (Build-DomainMd       -Project $project -Type $selectedType) $root
+    Emit "CHANGELOG.md"    (Build-ChangelogMd    -Project $project) $root
+    Emit "STRUCTURE.md"    (Build-StructureMd    -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
+    Emit "README.md"       (Build-ReadmeMd       -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
+
+    # Production ops files
+    Emit "QUALITY.md"      (Build-QualityMd      -Project $project -Type $selectedType) $root
+    Emit "SECURITY.md"     (Build-SecurityMd     -Project $project -Type $selectedType) $root
+    Emit "ENVIRONMENTS.md" (Build-EnvironmentsMd -Project $project) $root
+    Emit "OBSERVABILITY.md"(Build-ObservabilityMd -Project $project -Type $selectedType) $root
+
+    # Gitignore
+    Emit ".gitignore"      (Build-Gitignore      -Project $project) $root
+
+    # Agent configs
+    foreach ($a in $selectedAgents) {
+        Emit "agents\$($a.file)" (Build-AgentConfig -Agent $a -Project $project) $root
+    }
+
+    # Scratchpads
+    foreach ($a in $selectedAgents) {
+        Emit "scratchpads\$($a.scratchpad)\SESSION.md" (Build-SessionMd -Agent $a) $root
+        Emit "scratchpads\$($a.scratchpad)\NOTES.md"   (Build-NotesMd  -Agent $a) $root
+    }
+
+    # Skills — each as a proper folder (SKILL.md + gotchas.md + scripts/ + assets/ + references/)
+    if ($selectedSkills -and $selectedSkills.Count -gt 0) {
+        Emit "skills\README.md" (Build-SkillsReadme -Skills $selectedSkills -Project $project) $root
+        foreach ($s in $selectedSkills) {
+            # Main spec — entry point for the agent
+            Emit "skills\$($s.id)\SKILL.md"    (Build-SkillSpec   -Skill $s -Project $project) $root
+            # Gotchas — seeded with category-specific failure patterns
+            Emit "skills\$($s.id)\gotchas.md"  (Build-SkillGotchas -Skill $s -Project $project) $root
+            # Placeholder README in scripts/ to guide the agent
+            Emit "skills\$($s.id)\scripts\.keep" "# Add helper scripts here. Claude can run or compose these.`n# Example: validate_input.py, seed_data.sh, run_tests.ps1`n" $root
+            # outputs/ — structured results from skill executions (compressed context for future sessions)
+            Emit "skills\$($s.id)\outputs\.keep" "# Structured output records from skill executions.`n# Format: one JSON or markdown file per significant execution.`n# Agents read outputs/ instead of re-running expensive operations.`n# Example record: {date, outcome, summary, key_values}`n" $root
+        }
+        Write-Done "Skill folders: $($selectedSkills.Count) skills × (SKILL.md + gotchas.md + scripts/ + assets/ + references/)"
+    }
+
+    # Decisions seed
+    Emit "memory\decisions\000-init.md" (Build-DecisionsSeed -Project $project) $root
+
+    # Android-specific
+    if ($project.TypeId -eq "android") {
+        Write-Host ""
+        Write-Done "Android extras:"
+        Emit "GRADLE.md"                    (Build-GradleMd          -Project $project) $root
+        Emit "gradle\libs.versions.toml"    (Build-LibsVersionsToml  -Project $project) $root
+        Emit "proguard-rules.pro"           @"
 # proguard-rules.pro — see GRADLE.md for full baseline rules
 # Add project-specific rules here.
 # Always test release build after adding rules — use '.\gradlew.bat assembleRelease' in PowerShell.
 "@ $root
-}
+    }
 
-# Bootstrap record
-$record = @{
+    # Bootstrap record
+    $record = @{
     version     = $VERSION
     generatedAt = (Get-Date -Format "o")
     project     = @{
@@ -5380,102 +6108,100 @@ $record = @{
     }
     agents  = @($selectedAgents | ForEach-Object { @{ id=$_.id; name=$_.name; file=$_.file } })
     skills  = @($selectedSkills | ForEach-Object { @{ id=$_.id; name=$_.name; category=$_.category } })
-} | ConvertTo-Json -Depth 5
+    } | ConvertTo-Json -Depth 5
 
-if (-not $DryRun) {
-    Set-Content -Path (Join-Path $root "memory\bootstrap-record.json") -Value $record -Encoding UTF8
-}
-Write-Done "memory\bootstrap-record.json"
-
-# Git
-if ($initGit -and -not $DryRun) {
-    try {
-        Push-Location $root
-        git init --quiet 2>$null | Out-Null
-        git add . 2>$null | Out-Null
-        # Build a rich, informative first commit message
-        $skillNames  = ($selectedSkills | ForEach-Object { $_.name }) -join ", "
-        $agentNames  = ($selectedAgents | ForEach-Object { $_.name }) -join ", "
-        $hybridNote  = if ($project.SecondaryTypeId) { " + $($project.SecondaryTypeLabel)" } else { "" }
-        $scaleNote   = "$($project.Intake.ScaleProfile) · $($project.Intake.DeploymentTarget)"
-        $commitBody  = "Generated by Msingi v$VERSION`n`nProject:   $($project.Name) ($($project.TypeLabel)$hybridNote)`nMilestone: $($project.Milestone)`nAgents:    $agentNames`nSkills:    $skillNames`nScale:     $scaleNote`nMode:      $($project.Mode)`n`nBuilt in Accra. Designed for everywhere."
-        $commitMsg   = "feat(scaffold): initialise $($project.Name) ($($project.TypeLabel), $($selectedSkills.Count) skills, $($selectedAgents.Count) agents)"
-        git commit --quiet -m $commitMsg -m $commitBody 2>$null | Out-Null
-        Pop-Location
-        Write-Done "git init + initial commit"
-    } catch {
-        Pop-Location -ErrorAction SilentlyContinue
-        Write-Warn "git init skipped — git may not be in PATH"
+    if (-not $DryRun) {
+        Set-Content -Path (Join-Path $root "memory\bootstrap-record.json") -Value $record -Encoding UTF8
     }
-}
+    Write-Done "memory\bootstrap-record.json"
 
-# ── Done ──────────────────────────────────────────────────────────────────────
-$androidSuffix = if ($project.TypeId -eq "android") { " · GRADLE.md + libs.versions.toml" } else { "" }
-$hybridSuffix  = if ($project.SecondaryTypeId) { "  $(dim "+")  $($project.SecondaryTypeLabel)" } else { "" }
+    # Git
+    if ($initGit -and -not $DryRun) {
+        try {
+            Push-Location $root
+            git init --quiet 2>$null | Out-Null
+            git add . 2>$null | Out-Null
+            # Build a rich, informative first commit message
+            $skillNames  = ($selectedSkills | ForEach-Object { $_.name }) -join ", "
+            $agentNames  = ($selectedAgents | ForEach-Object { $_.name }) -join ", "
+            $hybridNote  = if ($project.SecondaryTypeId) { " + $($project.SecondaryTypeLabel)" } else { "" }
+            $scaleNote   = "$($project.Intake.ScaleProfile) · $($project.Intake.DeploymentTarget)"
+            $commitBody  = "Generated by Msingi v$VERSION`n`nProject:   $($project.Name) ($($project.TypeLabel)$hybridNote)`nMilestone: $($project.Milestone)`nAgents:    $agentNames`nSkills:    $skillNames`nScale:     $scaleNote`nMode:      $($project.Mode)`n`nBuilt in Accra. Designed for everywhere."
+            $commitMsg   = "feat(scaffold): initialise $($project.Name) ($($project.TypeLabel), $($selectedSkills.Count) skills, $($selectedAgents.Count) agents)"
+            git commit --quiet -m $commitMsg -m $commitBody 2>$null | Out-Null
+            Pop-Location
+            Write-Done "git init + initial commit"
+        } catch {
+            Pop-Location -ErrorAction SilentlyContinue
+            Write-Warn "git init skipped — git may not be in PATH"
+        }
+    }
 
-# ── Completion screen ────────────────────────────────────────────────────────
-Clear-Host
-Write-Header -Mode $mode -StepLabel "done"
-Write-Host ""
+    # ── Done ──────────────────────────────────────────────────────────────────────
+    $androidSuffix = if ($project.TypeId -eq "android") { " · GRADLE.md + libs.versions.toml" } else { "" }
+    $hybridSuffix  = if ($project.SecondaryTypeId) { "  $(dim "+")  $($project.SecondaryTypeLabel)" } else { "" }
+
+    # ── Completion screen ────────────────────────────────────────────────────────
+    Clear-Host
+    Write-Header -Mode $mode -StepLabel "done"
+    Write-Host ""
 
 $nextSteps = @(
     "1  Read CONTEXT.md — confirm architecture and NFRs are correct"
     "2  Read SECURITY.md — confirm threat model covers your project"
     "3  Read QUALITY.md — know the gates before writing any code"
     "4  Open TASKS.md — your first session starts at the top"
-)
-if ($project.TypeId -eq "android") {
-    $nextSteps += "5  Read GRADLE.md — before touching any .gradle.kts file"
+    )
+    if ($project.TypeId -eq "android") {
+        $nextSteps += "5  Read GRADLE.md — before touching any .gradle.kts file"
+    }
+    $detailLines = @(
+        "Type      $($project.TypeLabel)$hybridSuffix"
+        "Agents    $(@($selectedAgents | ForEach-Object { $_.name }) -join ' · ')"
+        "Skills    $($selectedSkills.Count) inferred$androidSuffix"
+        "Scale     $($project.ScaleProfile)  ·  $($project.DeploymentTarget)"
+        "Location  $root"
+    ) + @("") + $nextSteps
+
+    # ── Completion panel ────────────────────────────────────────────────────────
+    $tw       = Get-TermWidth
+    $boxInner = [Math]::Min($tw - 6, 70)
+    $brand    = ansi-fg 0 210 200
+
+    Write-Host ""
+    Write-Host "  $(ansi-fg 0 210 200)╔$("═" * $boxInner)╗$($C.Reset)"
+
+    # Title row — teal bold checkmark
+    $titleText = "✓  Bootstrap complete"
+    $titlePad  = [Math]::Max(0, $boxInner - $titleText.Length - 2)
+    Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $($C.Bold)$(ansi-fg 0 210 200)$titleText$($C.Reset)$(' ' * $titlePad) $(ansi-fg 0 210 200)║$($C.Reset)"
+
+    # Subtitle — version + type + counts
+    $sub     = "Msingi v$VERSION  ·  $($project.TypeLabel)  ·  $($selectedAgents.Count) agents  ·  $($selectedSkills.Count) skills"
+    $subPad  = [Math]::Max(0, $boxInner - $sub.Length - 2)
+    Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 80 80 100)$sub$($C.Reset)$(' ' * $subPad) $(ansi-fg 0 210 200)║$($C.Reset)"
+
+    # Divider
+    Write-Host "  $(ansi-fg 0 210 200)╠$("─" * $boxInner)╣$($C.Reset)"
+
+    # Detail lines
+    foreach ($ln in $detailLines) {
+        $lnPad = [Math]::Max(0, $boxInner - $ln.Length - 2)
+        Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 100 100 120)$ln$($C.Reset)$(' ' * $lnPad) $(ansi-fg 0 210 200)║$($C.Reset)"
+    }
+
+    # Tagline row
+    Write-Host "  $(ansi-fg 0 210 200)╠$("─" * $boxInner)╣$($C.Reset)"
+    $tag    = "Built in Accra. Designed for everywhere."
+    $tagPad = [Math]::Max(0, $boxInner - $tag.Length - 2)
+    Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 60 60 80)$tag$($C.Reset)$(' ' * $tagPad) $(ansi-fg 0 210 200)║$($C.Reset)"
+
+    Write-Host "  $(ansi-fg 0 210 200)╚$("═" * $boxInner)╝$($C.Reset)"
+    Write-Host ""
+
+    Write-Footer "Done"
+    Write-Host ""
+    
+    # Final cleanup and exit to prevent loop
+    exit 0
 }
-$detailLines = @(
-    "Type      $($project.TypeLabel)$hybridSuffix"
-    "Agents    $(@($selectedAgents | ForEach-Object { $_.name }) -join ' · ')"
-    "Skills    $($selectedSkills.Count) inferred$androidSuffix"
-    "Scale     $($project.ScaleProfile)  ·  $($project.DeploymentTarget)"
-    "Location  $root"
-) + @("") + $nextSteps
-
-# ── Completion panel ────────────────────────────────────────────────────────
-$tw       = Get-TermWidth
-$boxInner = [Math]::Min($tw - 6, 70)
-$brand    = ansi-fg 0 210 200
-
-Write-Host ""
-Write-Host "  $(ansi-fg 0 210 200)╔$("═" * $boxInner)╗$($C.Reset)"
-
-# Title row — teal bold checkmark
-$titleText = "✓  Bootstrap complete"
-$titlePad  = [Math]::Max(0, $boxInner - $titleText.Length - 2)
-Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $($C.Bold)$(ansi-fg 0 210 200)$titleText$($C.Reset)$(' ' * $titlePad) $(ansi-fg 0 210 200)║$($C.Reset)"
-
-# Subtitle — version + type + counts
-$sub     = "Msingi v$VERSION  ·  $($project.TypeLabel)  ·  $($selectedAgents.Count) agents  ·  $($selectedSkills.Count) skills"
-$subPad  = [Math]::Max(0, $boxInner - $sub.Length - 2)
-Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 80 80 100)$sub$($C.Reset)$(' ' * $subPad) $(ansi-fg 0 210 200)║$($C.Reset)"
-
-# Divider
-Write-Host "  $(ansi-fg 0 210 200)╠$("─" * $boxInner)╣$($C.Reset)"
-
-# Detail lines
-foreach ($ln in $detailLines) {
-    $lnPad = [Math]::Max(0, $boxInner - $ln.Length - 2)
-    Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 100 100 120)$ln$($C.Reset)$(' ' * $lnPad) $(ansi-fg 0 210 200)║$($C.Reset)"
-}
-
-# Tagline row
-Write-Host "  $(ansi-fg 0 210 200)╠$("─" * $boxInner)╣$($C.Reset)"
-$tag    = "Built in Accra. Designed for everywhere."
-$tagPad = [Math]::Max(0, $boxInner - $tag.Length - 2)
-Write-Host "  $(ansi-fg 0 210 200)║$($C.Reset)  $(ansi-fg 60 60 80)$tag$($C.Reset)$(' ' * $tagPad) $(ansi-fg 0 210 200)║$($C.Reset)"
-
-Write-Host "  $(ansi-fg 0 210 200)╚$("═" * $boxInner)╝$($C.Reset)"
-Write-Host ""
-Write-Host ""
-
-Write-Footer "Enter open in Explorer  Ctrl+C abort"
-if (-not $DryRun) {
-    $openExp = Read-Confirm "Open project in Explorer?" $true
-    if ($openExp) { Start-Process explorer.exe $root }
-}
-
-Write-Host ""
