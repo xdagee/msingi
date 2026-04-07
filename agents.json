@@ -1,62 +1,124 @@
-[
-  {
-    "id": "claude-code",
-    "name": "Claude Code",
-    "file": "CLAUDE.md",
-    "scratchpad": "claude-code",
-    "category": "vendor",
-    "repo": "",
-    "description": "Anthropic's agentic coding assistant. Closed-source, no public repo.",
-    "docsUrl": "https://docs.anthropic.com/en/docs/claude-code/overview"
-  },
-  {
-    "id": "gemini-cli",
-    "name": "Gemini CLI",
-    "file": "GEMINI.md",
-    "scratchpad": "gemini-cli",
-    "category": "vendor-oss",
-    "repo": "https://github.com/google-gemini/gemini-cli",
-    "description": "Google's open-source Gemini terminal agent. Apache 2.0. Free tier: 1000 req/day.",
-    "docsUrl": "https://geminicli.com/docs/"
-  },
-  {
-    "id": "codex",
-    "name": "Codex",
-    "file": "AGENTS.md",
-    "scratchpad": "codex",
-    "category": "vendor-oss",
-    "repo": "https://github.com/openai/codex",
-    "description": "OpenAI Codex CLI. Open-source (MIT), built in Rust. Requires ChatGPT Plus or API key.",
-    "docsUrl": "https://developers.openai.com/codex/cli"
-  },
-  {
-    "id": "opencode",
-    "name": "Opencode",
-    "file": "opencode.json",
-    "scratchpad": "opencode",
-    "category": "oss",
-    "repo": "https://github.com/anomalyco/opencode",
-    "description": "Open-source coding agent (MIT). Provider-agnostic TUI + desktop app. 120k+ stars.",
-    "docsUrl": "https://opencode.ai/docs"
-  },
-  {
-    "id": "aider",
-    "name": "Aider",
-    "file": "AIDER.md",
-    "scratchpad": "aider",
-    "category": "oss",
-    "repo": "https://github.com/Aider-AI/aider",
-    "description": "Open-source AI pair programmer (Apache 2.0). Works with any LLM. Git-native. 42k+ stars.",
-    "docsUrl": "https://aider.chat/docs/"
-  },
-  {
-    "id": "deepagents",
-    "name": "Deep Agents CLI",
-    "file": "DEEPAGENTS.md",
-    "scratchpad": "deepagents",
-    "category": "framework-oss",
-    "repo": "https://github.com/langchain-ai/deepagents",
-    "description": "LangChain's open-source deep agent harness (MIT). Planning, subagents, persistent memory. Provider-agnostic.",
-    "docsUrl": "https://docs.langchain.com/oss/python/deepagents/overview"
-  }
-]
+{
+  "schema_version": "1.0",
+  "agents": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "file": "CLAUDE.md",
+      "scratchpad": "claude-code",
+      "category": "vendor",
+      "repo": "",
+      "description": "Anthropic's agentic coding assistant. Closed-source, no public repo.",
+      "docsUrl": "https://docs.anthropic.com/en/docs/claude-code/overview",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search"
+      ],
+      "selfDirection": "high"
+    },
+    {
+      "id": "gemini-cli",
+      "name": "Gemini CLI",
+      "file": "GEMINI.md",
+      "scratchpad": "gemini-cli",
+      "category": "vendor-oss",
+      "repo": "https://github.com/google-gemini/gemini-cli",
+      "description": "Google's open-source Gemini terminal agent. Apache 2.0. Free tier: 1000 req/day.",
+      "docsUrl": "https://geminicli.com/docs/",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search"
+      ],
+      "selfDirection": "high"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "file": "AGENTS.md",
+      "scratchpad": "codex",
+      "category": "vendor-oss",
+      "repo": "https://github.com/openai/codex",
+      "description": "OpenAI Codex CLI. Open-source (MIT), built in Rust. Requires ChatGPT Plus or API key.",
+      "docsUrl": "https://developers.openai.com/codex/cli",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "high"
+    },
+    {
+      "id": "opencode",
+      "name": "Opencode",
+      "file": "opencode.json",
+      "scratchpad": "opencode",
+      "category": "oss",
+      "repo": "https://github.com/anomalyco/opencode",
+      "description": "Open-source coding agent (MIT). Provider-agnostic TUI + desktop app. 120k+ stars.",
+      "docsUrl": "https://opencode.ai/docs",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "medium"
+    },
+    {
+      "id": "aider",
+      "name": "Aider",
+      "file": "AIDER.md",
+      "scratchpad": "aider",
+      "category": "oss",
+      "repo": "https://github.com/Aider-AI/aider",
+      "description": "Open-source AI pair programmer (Apache 2.0). Works with any LLM. Git-native. 42k+ stars.",
+      "docsUrl": "https://aider.chat/docs/",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "medium"
+    },
+    {
+      "id": "deepagents",
+      "name": "Deep Agents CLI",
+      "file": "DEEPAGENTS.md",
+      "scratchpad": "deepagents",
+      "category": "framework-oss",
+      "repo": "https://github.com/langchain-ai/deepagents",
+      "description": "LangChain's open-source deep agent harness (MIT). Planning, subagents, persistent memory. Provider-agnostic.",
+      "docsUrl": "https://docs.langchain.com/oss/python/deepagents/overview",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search",
+        "api-calls"
+      ],
+      "selfDirection": "high"
+    },
+    {
+      "id": "antigravity",
+      "name": "Antigravity",
+      "file": "ANTIGRAVITY.md",
+      "scratchpad": "antigravity",
+      "category": "vendor",
+      "repo": "",
+      "description": "Google's advanced agentic coding assistant. Proprietary, state-of-the-art context engineering and planning.",
+      "docsUrl": "https://antigravity.google/docs",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search",
+        "browser",
+        "api-calls"
+      ],
+      "selfDirection": "high"
+    }
+  ]
+}
