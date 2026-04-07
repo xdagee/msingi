@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](msingi.ps1)
 [![Platform: macOS/Linux](https://img.shields.io/badge/platform-macOS%20%2F%20Linux-green.svg)](msingi.sh)
-[![Version](https://img.shields.io/badge/version-3.6.0-orange.svg)](#)
+[![Version](https://img.shields.io/badge/version-3.8.1-orange.svg)](#)
 
 **Built in Accra. Designed for everywhere.**
 
