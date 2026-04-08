@@ -8,7 +8,7 @@
 # ✨═══════════════════════════════════════════════════════════════════════════✨
 set -uo pipefail
 
-VERSION="3.8.1"
+VERSION="3.9.0"
 MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""
@@ -224,6 +224,47 @@ build_tasks_md() {
 EOF
 }
 
+build_workstreams_md() {
+    cat <<EOF
+# WORKSTREAMS.md — Supervisor Manifest & Swarm Routing
+
+This project uses **Coordinator Mode** for multi-agent swarm orchestration.
+Do not use this file to manually track task lists. This file defines the rules of engagement for \`coordinator\` and \`executor\` agents operating in the \`workstreams/\` directory.
+
+---
+
+## Agent Roles & Permissions
+
+### \`roles: ["coordinator", "planner"]\`
+- **Goal:** Break down architecture into parallel tasks, spawn sandboxes, and integrate results.
+- **Permissions:** You have write access to \`workstreams/_coordinator/DISPATCH.md\`.
+- **Workflow:** 
+  1. Identify a parallelable component.
+  2. Use the \`swarm-orchestration\` skill (if available) to generate \`workstreams/<task_name>/\`.
+  3. Write the exact requirements into \`workstreams/<task_name>/SCOPE.md\`.
+  4. Track the task in \`DISPATCH.md\` as \`ACTIVE\`.
+  5. Wait for the executor to mark \`STATUS.json\` as \`READY_FOR_MERGE\`.
+  6. Review the executor's code, integrate it into \`src/\`, and update \`DISPATCH.md\` to \`MERGED\`.
+
+### \`roles: ["executor"]\`
+- **Goal:** Implement the exact requirements defined in your sandbox.
+- **Permissions:** You are strictly confined to modifying files related to your assigned \`workstreams/<task_name>/SCOPE.md\`. Do not touch files outside your scope unless absolutely necessary for integration.
+- **Workflow:**
+  1. Read \`workstreams/<task_name>/SCOPE.md\`.
+  2. Write code, write tests, verify against \`QUALITY.md\`.
+  3. When complete, update \`workstreams/<task_name>/STATUS.json\` from \`ACTIVE\` to \`READY_FOR_MERGE\`.
+  4. Yield control back to the human or coordinator.
+
+---
+
+## Workstream Lifecycle State Machine
+\`ACTIVE\` -> \`BLOCKED\` (requires human/coordinator unblocking) -> \`READY_FOR_MERGE\` -> \`MERGED\` | \`FAILED\`
+
+---
+*Canonical routing rules for swarm mechanics. Do not modify manually.*
+EOF
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # NAVIGATION STATE
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -294,8 +335,24 @@ echo -e "\n  $(hi "GENERATING SCAFFOLD...")\n"
 mkdir -p "${PROJECT_NAME:-scaffold}"
 echo "$(build_context_md "${PROJECT_NAME:-Project}")" > "${PROJECT_NAME:-scaffold}/CONTEXT.md"
 echo "$(build_tasks_md)" > "${PROJECT_NAME:-scaffold}/TASKS.md"
+echo "$(build_workstreams_md)" > "${PROJECT_NAME:-scaffold}/WORKSTREAMS.md"
+
+mkdir -p "${PROJECT_NAME:-scaffold}/workstreams/_coordinator"
+echo "# Core workstreams go here." > "${PROJECT_NAME:-scaffold}/workstreams/.keep"
+cat <<EOF > "${PROJECT_NAME:-scaffold}/workstreams/_coordinator/DISPATCH.md"
+# DISPATCH.md — Swarm Workstream Registry
+
+## Active Workstreams
+- ...
+
+## Merged Workstreams
+- ...
+EOF
+
 write_done "CONTEXT.md"
 write_done "TASKS.md"
+write_done "WORKSTREAMS.md"
+write_done "workstreams/ directory"
 
 # ── Completion panel (Parity with PS1) ──────────────────────────────────────────
 tw=$(tput cols 2>/dev/null || echo 80)

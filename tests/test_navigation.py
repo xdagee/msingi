@@ -204,6 +204,16 @@ class TestAgentsJson:
         for agent in self.data["agents"]:
             assert agent.get("selfDirection") in valid_dirs, f"Agent '{agent['id']}' has invalid selfDirection: {agent.get('selfDirection')}"
 
+    def test_agent_roles(self):
+        """All agents must define roles as a list containing planner, executor, or coordinator."""
+        valid_roles = {"planner", "executor", "coordinator"}
+        for agent in self.data["agents"]:
+            roles = agent.get("roles")
+            assert isinstance(roles, list), f"Agent '{agent['id']}' roles must be a list"
+            assert len(roles) > 0, f"Agent '{agent['id']}' must have at least one role"
+            for r in roles:
+                assert r in valid_roles, f"Agent '{agent['id']}' has invalid role: {r}"
+
 
 class TestSkillsJson:
     def setup_method(self):
@@ -241,7 +251,7 @@ class TestSkillsJson:
 
     def test_valid_categories(self):
         """Skill categories must be from the known set."""
-        valid = {"auth", "data", "api", "ui", "ml", "infra", "messaging", "testing", "android"}
+        valid = {"auth", "data", "api", "ui", "ml", "infra", "messaging", "testing", "android", "core"}
         for skill in self.data["skills"]:
             assert skill["category"] in valid, f"Skill '{skill['id']}' bad category: {skill['category']}"
 

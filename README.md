@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](msingi.ps1)
 [![Platform: macOS/Linux](https://img.shields.io/badge/platform-macOS%20%2F%20Linux-green.svg)](msingi.sh)
-[![Version](https://img.shields.io/badge/version-3.8.1-orange.svg)](#)
+[![Version](https://img.shields.io/badge/version-3.9.0-orange.svg)](#)
 
 **Built in Accra. Designed for everywhere.**
 
@@ -74,13 +74,13 @@ The files Msingi generates are not documentation templates. They are a **context
 - **Skills as beliefs:** gotchas carry confidence scores (●●●●● critical → ●○○○○ weak), trigger keywords, and update instructions — adapted from the ECC instincts architecture
 - **Tiered memory:** NOTES.md targets under 300 lines; older observations compress to NOTES-archive.md — session-start load cost stays flat regardless of project age
 
-### Parallel agent coordination
+### Parallel agent coordination & Roles
 
-Every project generates WORKSTREAMS.md — scope boundaries per agent, phase gates, and merge checkpoints. The Karpathy model: carve the codebase into parallel non-conflicting workstreams. Agents own exclusive write scope. Humans review at merge checkpoints, not after every commit.
+Every project generates WORKSTREAMS.md — scope boundaries per agent, phase gates, and merge checkpoints. Agents are explicitly classified by formal `"roles"` (`coordinator`, `planner`, `executor`), enabling seamless progression from architectural intent to concrete file generation in swarms.
 
-### Token cost awareness
+### Token cost awareness & Compaction
 
-SESSION.md tracks both efficiency (avoidable re-reads, context establishment cost) and leverage (what was discovered beyond the task). Token throughput is the new GPU utilisation — idle budget is missed opportunity.
+SESSION.md tracks both efficiency and leverage. As sessions stretch out, token throughput drops. The `auto-dream` capability provides physical scripts that act as a memory consolidation engine, migrating fragmented session trails into hardened CONTEXT.md knowledge automatically.
 
 ### Offline. No cloud dependency. Free.
 
@@ -131,11 +131,11 @@ msingi --help
 The tool asks:
 
 1. **Mode** — new project or existing codebase overlay
-2. **Type** — web app, API service, ML/AI, CLI tool, full-stack, Android (up to 2 for hybrid)
+2. **Type** — web app, API service, ML/AI, CLI tool, full-stack, Android, desktop-windows (up to 2 for hybrid)
 3. **Details** — name, description, stack, milestone, target directory
 4. **Smart intake** — audience, authentication, sensitive data, deployment target, scale
-5. **Agents** — which of the 6 registered agents (Claude Code, Gemini CLI, Codex, Opencode, Qwen Code, Antigravity)
-6. **Skills** — inferred from your description and stack (61 skills, type-scoped, baseline-guaranteed)
+5. **Agents** — which of the 7 registered agents (Claude Code, Gemini CLI, Codex, Opencode, Aider, Deep Agents, Antigravity)
+6. **Skills** — inferred from your description and stack (67 skills, type-scoped, baseline-guaranteed)
 7. **Review + confirm** — full summary before anything is written
 
 ---
@@ -187,7 +187,7 @@ Msingi is open to contributions that make it more useful for more developers —
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **What we welcome:**
-- New project types (beyond the current 6)
+- New project types (beyond the current 7)
 - New agent registrations in `agents.json`
 - New skills in `skills.json` with accurate trigger patterns
 - Gotcha seeds for underrepresented categories
@@ -215,6 +215,8 @@ Msingi builds on ideas from:
 
 | Version | Changes |
 |---|---|
+| **3.9.0** | **Claude Code Teardown Integration.** Derived from architectural teardowns of modern agent CLI models: Integrated `Agent Roles` taxonomy classifying agents as `coordinator`, `planner`, or `executor` to orchestrate swarms effectively. Implemented `Auto-Dream Memory Consolidation` skill dropping `dream.ps1`/`dream.sh` compaction templates to automate `SESSION.md` -> `CONTEXT.md` aggregation rules. |
+| **3.8.1** | **Production Stabilization & NN/G Agent Framework**. Added `desktop-windows` project type (MVVM WinUI 3 architecture, DLL hijacking threat model, MSIX quality gates). Integrated `antigravity` agent to the registry. Implemented NN/G's concrete AI agent definition into the core scaffold: all agents are now profiled via `capabilityToAct` and `selfDirection`, and the scaffold config enforces a strict **Agentic Loop Protocol** (Goal → Act → Evaluate → Adapt → Escalate/Verify). Unshipped `Qwen Code` and added new `agent-evaluation` tracking skill. Upgraded test suite to a comprehensive 50-test Python (`pytest`) validation harness ensuring strict schema and syntax parity. |
 | **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |
 | **3.6.0** | ECC-inspired confidence metadata in gotchas.md. Each gotcha is now a belief with evidence: 5 confidence tiers (●●●●● → ●○○○○), trigger keywords, last_seen, status. All 9 skill categories seeded with structured What/Why/Prevention entries. |
 | **3.5.0** | WORKSTREAMS.md and DOMAIN.md added. Parallel agent coordination with scope ownership, phase gates, merge checkpoints. Pedagogical domain context for teaching agents the business domain. Token leverage note in SESSION.md. |

@@ -544,6 +544,22 @@
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "agent.*eval|agent.*test|benchmark.*agent|usefulness.*agent|supervision.*cost|human.*review.*rate|agent.*loop|agentic"
+    },
+    {
+      "id": "auto-dream",
+      "name": "Auto-Dream Compaction",
+      "category": "core",
+      "types": ["web-app", "api-service", "ml-ai", "cli-tool", "fullstack", "android", "desktop-windows"],
+      "baseline": true,
+      "trigger": "memory|compress|dream|consolidate"
+    },
+    {
+      "id": "swarm-orchestration",
+      "name": "Swarm Orchestration Engine",
+      "category": "core",
+      "types": ["web-app", "api-service", "ml-ai", "cli-tool", "fullstack", "android", "desktop-windows"],
+      "baseline": true,
+      "trigger": "swarm|orchestrate|sub-agent|coordinator|workstream|dispatch"
     }
   ]
 }

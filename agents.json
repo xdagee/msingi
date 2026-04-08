@@ -14,9 +14,14 @@
         "file-system",
         "terminal",
         "code-execution",
+        "code-execution",
         "web-search"
       ],
-      "selfDirection": "high"
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "executor"
+      ]
     },
     {
       "id": "gemini-cli",
@@ -31,9 +36,14 @@
         "file-system",
         "terminal",
         "code-execution",
+        "code-execution",
         "web-search"
       ],
-      "selfDirection": "high"
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "executor"
+      ]
     },
     {
       "id": "codex",
@@ -47,9 +57,13 @@
       "capabilityToAct": [
         "file-system",
         "terminal",
+        "terminal",
         "code-execution"
       ],
-      "selfDirection": "high"
+      "selfDirection": "high",
+      "roles": [
+        "executor"
+      ]
     },
     {
       "id": "opencode",
@@ -63,9 +77,13 @@
       "capabilityToAct": [
         "file-system",
         "terminal",
+        "terminal",
         "code-execution"
       ],
-      "selfDirection": "medium"
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ]
     },
     {
       "id": "aider",
@@ -79,9 +97,13 @@
       "capabilityToAct": [
         "file-system",
         "terminal",
+        "terminal",
         "code-execution"
       ],
-      "selfDirection": "medium"
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ]
     },
     {
       "id": "deepagents",
@@ -97,9 +119,15 @@
         "terminal",
         "code-execution",
         "web-search",
+        "web-search",
         "api-calls"
       ],
-      "selfDirection": "high"
+      "selfDirection": "high",
+      "roles": [
+        "coordinator",
+        "planner",
+        "executor"
+      ]
     },
     {
       "id": "antigravity",
@@ -116,9 +144,14 @@
         "code-execution",
         "web-search",
         "browser",
+        "browser",
         "api-calls"
       ],
-      "selfDirection": "high"
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "executor"
+      ]
     }
   ]
 }

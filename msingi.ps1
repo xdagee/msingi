@@ -65,7 +65,7 @@ $ErrorActionPreference = "Stop"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-$VERSION    = "3.8.1"
+$VERSION    = "3.9.0"
 $SCRIPT_DIR = $PSScriptRoot
 $MAX_SKILLS = 12   # type-scoped pool means all matches are relevant
 
@@ -6003,6 +6003,8 @@ if ($currentStep -ge $totalSteps) {
         (Join-Path $root "agents"),
         (Join-Path $root "skills"),
         (Join-Path $root "memory\decisions"),
+        (Join-Path $root "workstreams"),
+        (Join-Path $root "workstreams\_coordinator"),
         (Join-Path $root "src")
     )
     foreach ($a in $selectedAgents) { $dirs += Join-Path $root "scratchpads\$($a.scratchpad)" }
@@ -6040,6 +6042,18 @@ if ($currentStep -ge $totalSteps) {
     # Gitignore
     Emit ".gitignore"      (Build-Gitignore      -Project $project) $root
 
+    # Workstreams Registry
+    Emit "workstreams\.keep" "# Core workstreams go here.`n" $root
+    Emit "workstreams\_coordinator\DISPATCH.md" @"
+# DISPATCH.md — Swarm Workstream Registry
+
+## Active Workstreams
+- ...
+
+## Merged Workstreams
+- ...
+"@ $root
+
     # Agent configs
     foreach ($a in $selectedAgents) {
         Emit "agents\$($a.file)" (Build-AgentConfig -Agent $a -Project $project) $root
@@ -6063,6 +6077,65 @@ if ($currentStep -ge $totalSteps) {
             Emit "skills\$($s.id)\scripts\.keep" "# Add helper scripts here. Claude can run or compose these.`n# Example: validate_input.py, seed_data.sh, run_tests.ps1`n" $root
             # outputs/ — structured results from skill executions (compressed context for future sessions)
             Emit "skills\$($s.id)\outputs\.keep" "# Structured output records from skill executions.`n# Format: one JSON or markdown file per significant execution.`n# Agents read outputs/ instead of re-running expensive operations.`n# Example record: {date, outcome, summary, key_values}`n" $root
+
+            # Auto-Dream scripts
+            if ($s.id -eq "auto-dream") {
+                Emit "skills\$($s.id)\scripts\dream.ps1" @"
+param(
+    [string]`$SessionFile = "scratchpads/antigravity/SESSION.md",
+    [string]`$ContextFile = "CONTEXT.md"
+)
+Write-Host "Running Auto-Dream Compaction..."
+# In a real environment, trigger the LLM to compress `$SessionFile into `$ContextFile
+Write-Host "Compaction complete."
+"@ $root
+
+                Emit "skills\$($s.id)\scripts\dream.sh" @"
+#!/usr/bin/env bash
+SESSION_FILE="scratchpads/antigravity/SESSION.md"
+CONTEXT_FILE="CONTEXT.md"
+echo "Running Auto-Dream Compaction..."
+# In a real environment, trigger the LLM to compress `$SESSION_FILE into `$CONTEXT_FILE
+echo "Compaction complete."
+"@ $root
+            }
+
+            # Swarm Orchestration scripts
+            if ($s.id -eq "swarm-orchestration") {
+                Emit "skills\$($s.id)\scripts\dispatch.ps1" @"
+param(
+    [Parameter(Mandatory=`$true)][string]`$WorkstreamName,
+    [Parameter(Mandatory=`$true)][string]`$AgentRole,
+    [string]`$Description = "Sub-task for `$WorkstreamName"
+)
+
+`$base = "workstreams/`$WorkstreamName"
+New-Item -ItemType Directory -Force -Path `$base | Out-Null
+Set-Content -Path "workstreams/_coordinator/DISPATCH.md" -Value "- [`$AgentRole] `$WorkstreamName: ACTIVE" -Append
+Set-Content -Path "`$base/SCOPE.md" -Value "# Scope: `$WorkstreamName`n`n`$Description`n`n**Strict bounds:** Do not modify files outside this module."
+Set-Content -Path "`$base/STATUS.json" -Value "{ `"status`": `"ACTIVE`", `"handoff`": `"`$AgentRole`" }"
+
+Write-Host "Workstream `$WorkstreamName provisioned for `$AgentRole."
+"@ $root
+
+                Emit "skills\$($s.id)\scripts\dispatch.sh" @"
+#!/usr/bin/env bash
+set -u
+
+WORKSTREAM="`$1"
+ROLE="`$2"
+DESC="`${3:-"Sub-task for `$WORKSTREAM"}"
+
+BASE="workstreams/`$WORKSTREAM"
+mkdir -p "`$BASE"
+
+echo "- [`$ROLE] `$WORKSTREAM: ACTIVE" >> "workstreams/_coordinator/DISPATCH.md"
+echo -e "# Scope: `$WORKSTREAM\n\n`$DESC\n\n**Strict bounds:** Do not modify files outside this module." > "`$BASE/SCOPE.md"
+echo "{ \"status\": \"ACTIVE\", \"handoff\": \"`$ROLE\" }" > "`$BASE/STATUS.json"
+
+echo "Workstream `$WORKSTREAM provisioned for `$ROLE."
+"@ $root
+            }
         }
         Write-Done "Skill folders: $($selectedSkills.Count) skills × (SKILL.md + gotchas.md + scripts/ + assets/ + references/)"
     }
