@@ -34,7 +34,7 @@ $path = "C:/Projects/msingi/data"
 ## Line Endings & Encoding
 
 ### CRLF Requirement
-- **Prohibition**: Never commit LF-only files for `msingi.ps1`.
+- **Requirement**: Ensure CRLF line endings for `msingi.ps1` before committing.
 - **Mandatory**: Use CRLF for all scripts to ensure correct here-string parsing.
 - **Correction**: Run `python3 scripts/fix_line_endings.py` after non-Windows edits.
 
