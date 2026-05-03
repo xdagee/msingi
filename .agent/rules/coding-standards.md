@@ -18,7 +18,7 @@ Msingi is a cross-platform TUI tool where PowerShell 7 is the reference implemen
 
 ### Here-String Rules
 - **Column 0 Close**: Mandatory: Every closing `"@` must start at column 0.
-- **Escape Prohibition**: Prohibition: Never use backtick escapes (`` `n ``, `` `t ``) inside here-strings.
+- **Escape Rule**: Use `$(...)` expression syntax for all dynamic content — backtick escapes (`` `n ``, `` `t ``) break PS7 here-strings.
 - **Expression Syntax**: Mandatory: Use `$(...)` for all dynamic content within here-strings.
 
 ```powershell
@@ -57,7 +57,7 @@ Item: `$($item.name)
 ## Bash Standards (msingi.sh)
 
 ### Error Handling
-- **Mode Prohibition**: Prohibition: Never use `set -e`.
+- **Mode Rule**: Handle errors explicitly with `|| true` — `set -e` is incompatible with Msingi's error handling model.
 - **Explicit Handling**: Mandatory: Handle errors explicitly with `|| true` on optional steps.
 - **Arithmetic**: Mandatory: All `((i++))` arithmetic must be followed by `|| true`.
 
@@ -85,7 +85,7 @@ Item: `$($item.name)
 
 ### ID Conventions
 - **Format**: Mandatory: kebab-case only.
-- **Length**: Prohibition: IDs must not exceed 40 characters.
+- **Length**: Requirement: Keep IDs to 40 characters or fewer.
 
 ## Synchronization Rules
 
