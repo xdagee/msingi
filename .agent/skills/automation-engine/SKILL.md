@@ -18,7 +18,7 @@ A successful CLI tool must be non-interactive by default in scripts and provide 
 ## Instructions
 
 1. **Stream Integrity**:
-   - `stdout`: Prohibition: Never output logs or TUI elements to stdout. Reserve for DATA ONLY.
+   - `stdout`: Requirement: Reserve stdout exclusively for data output — direct all logs and TUI elements to stderr.
    - `stderr`: Mandatory: Output all logs, spinners, and TUI frames to stderr only.
 
 2. **Headless Operation**:
@@ -26,7 +26,7 @@ A successful CLI tool must be non-interactive by default in scripts and provide 
    - Default to safe values from `.msingirc` or environment variables when in headless mode.
 
 3. **Exit Management**:
-   - Prohibition: Never use `exit 0` for a failed operation.
+   - Requirement: Use non-zero exit codes for all failure paths — exit 0 signals success only.
    - Mandatory: Catch and re-throw errors with specific codes to aid CI/CD debugging.
 
 4. **Environment Awareness**:
