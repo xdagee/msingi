@@ -29,5 +29,5 @@ Msingi exists in two parallel versions: `msingi.ps1` (Reference) and `msingi.sh`
    - **Verification**: Use `diff` or `python3 tests/test_suite.py` to verify output parity.
 
 4. **Platform Constraints**:
-   - Prohibition: Never use `set -e` in Bash scripts.
+   - Requirement: Handle errors explicitly with `|| true` in Bash scripts — `set -e` is incompatible with Msingi's error model.
    - Mandatory: Maintain CRLF in PowerShell scripts for here-string stability.
