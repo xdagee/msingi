@@ -13,7 +13,7 @@ Apply this rule when modifying `msingi.ps1` (PowerShell 7) or `msingi.sh` (Bash 
 
 ## Here-String Invariants
 - **Column 0**: Place the here-string closer (`"@`) strictly at column 0.
-- **No Escapes**: Prohibition: Never use backtick escapes (`` `n ``, `` `t ``) inside here-strings.
+- **Expression Syntax**: Use `$(...)` expression patterns for all dynamic content — backtick escapes (`` `n ``, `` `t ``) break PS7 here-strings.
 - **Logic**: Use `$(...)` expression patterns for all dynamic content.
 
 ## Dual-Script Parity
