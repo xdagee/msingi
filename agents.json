@@ -21,7 +21,11 @@
       "roles": [
         "planner",
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": ".claude",
+        "supports": ["settings", "rules", "commands"]
+      }
     },
     {
       "id": "gemini-cli",
@@ -43,7 +47,11 @@
       "roles": [
         "planner",
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": ".gemini",
+        "supports": ["settings", "context"]
+      }
     },
     {
       "id": "codex",
@@ -63,7 +71,8 @@
       "selfDirection": "high",
       "roles": [
         "executor"
-      ]
+      ],
+      "nativeConfig": null
     },
     {
       "id": "opencode",
@@ -83,7 +92,11 @@
       "selfDirection": "medium",
       "roles": [
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": ".opencode",
+        "supports": ["agents"]
+      }
     },
     {
       "id": "aider",
@@ -103,7 +116,11 @@
       "selfDirection": "medium",
       "roles": [
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": null,
+        "supports": ["confFile", "ignoreFile"]
+      }
     },
     {
       "id": "deepagents",
@@ -127,7 +144,11 @@
         "coordinator",
         "planner",
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": ".deepagents",
+        "supports": ["context", "skills"]
+      }
     },
     {
       "id": "antigravity",
@@ -151,7 +172,11 @@
       "roles": [
         "planner",
         "executor"
-      ]
+      ],
+      "nativeConfig": {
+        "configDir": ".agent",
+        "supports": ["rules", "commands", "workflows"]
+      }
     }
   ]
 }
