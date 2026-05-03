@@ -940,6 +940,7 @@ A feature is production-ready when all boxes above are checked, a peer review
 (human or second agent) has verified the implementation against the skill spec,
 and the deployment has been validated in staging before production promotion.
 "@
+        entropyControl = "- **Component purity:** UI components must not contain business logic or make direct API calls. Delegate to hooks or services."
         observabilityFocus = @"
 ## Observability Requirements — Web Application
 
@@ -1080,6 +1081,7 @@ HTTP status codes must be semantically correct — 4xx for client errors, 5xx fo
 Implementation matches OpenAPI spec. Contract tests pass. Load test baseline
 documented. Deployed and validated in staging. No open HIGH security findings.
 "@
+        entropyControl = "- **Strict boundaries:** All request handlers must go through the middleware chain for auth/validation. No direct database access from controllers."
         observabilityFocus = @"
 ## Observability Requirements — API Service
 
@@ -1206,6 +1208,7 @@ Model meets baseline metrics on held-out test set. Serving latency SLA validated
 under load. Fallback and rollback tested. Data pipeline schema-validated end-to-end.
 No HIGH security findings. Deployed and monitored in staging for 48 h before production.
 "@
+        entropyControl = "- **Idempotency & Isolation:** Data transformations must be repeatable. Model inferences must be isolated from state mutation."
         observabilityFocus = @"
 ## Observability Requirements — ML / AI System
 
@@ -1326,6 +1329,7 @@ Never hardcode path separators. Use the platform's path APIs.
 All commands pass cross-platform CI. No raw stack traces reachable by user.
 Install tested on clean machine. Help text reviewed for accuracy.
 "@
+        entropyControl = "- **Headless first:** All logic must be executable without a TUI/UI. Separate the engine from the interface."
         observabilityFocus = @"
 ## Observability Requirements — CLI Tool
 
@@ -1459,6 +1463,7 @@ Feature flags preferred over long-lived feature branches.
 All tier gates pass. E2E tests green. Load test baseline documented.
 Staging validated for 24 h. Security scan clean. Runbook reviewed.
 "@
+        entropyControl = "- **Separation of concerns:** Strict boundary between frontend components and backend services. Share only API contracts/types."
         observabilityFocus = @"
 ## Observability Requirements — Full-Stack Platform
 
@@ -1619,6 +1624,7 @@ Release build passes all lint and tests. LeakCanary clean. Cold start within SLA
 No HIGH security findings. Tested on physical device (not only emulator).
 Internal test track validated before production promotion.
 "@
+        entropyControl = "- **Thread safety:** Never perform blocking I/O on the main thread. Always inject dispatchers."
         observabilityFocus = @"
 ## Observability Requirements — Android Application
 
@@ -1732,6 +1738,7 @@ Local state in ViewModels with `INotifyPropertyChanged`. Persistent state in loc
 Signed MSIX package ready for distribution. App Certification Kit passes.
 Unit and UI tests green. No blocking I/O on main thread.
 "@
+        entropyControl = "- **Process separation:** Keep UI rendering on the main thread, but push all heavy computation to background workers."
         observabilityFocus = @"
 ## Observability Requirements — Windows Desktop App
 
@@ -2051,25 +2058,29 @@ $s
 ## Current Milestone
 $m
 
-## Session start — read in this order (recency first, static context on demand)
-
+## Core Context
 > Context engineering principle: dynamic state before static context.
-> What changed recently is more actionable than what was decided at bootstrap.
-> Read the static docs (CONTEXT.md, QUALITY.md) selectively — skip if they have not changed.
+> Read this section at the start of every session.
 
 1. ``scratchpads/$id/SESSION.md`` — where did I leave off? Resolve any ESCALATE before proceeding
 2. ``TASKS.md`` — what is the current work for this milestone?
 3. ``WORKSTREAMS.md`` — which workstream am I in? What is my scope? Any phase gates to check?
 4. ``scratchpads/$id/NOTES.md`` — what do I persistently know across sessions?
-5. ``CONTEXT.md`` — architecture and NFRs (skim if unchanged — focus on sections relevant to today's task)
-6. ``DOMAIN.md`` — consult before any feature that touches business rules or domain concepts
-7. ``QUALITY.md`` — read fully before writing any implementation code
-8. ``SECURITY.md`` — read before any auth, data handling, or config work
-9. ``ENVIRONMENTS.md`` — read before touching config, secrets, or deployment
-10. ``DISCOVERY.md`` — check before starting any significant new feature
+5. ``CONTEXT.md`` — architecture and NFRs (skim if unchanged)
+
+## Where to look next
+> Progressive disclosure: fetch these documents only when relevant to your current task.
+
+- **Design & Architecture**: Check ``docs/`` for architectural diagrams, API contracts, or data models
+- **Execution Plans**: Check ``.plans/`` for active and historical ExecPlans (see PLANS.md for protocol)
+- **Domain Logic**: Check ``DOMAIN.md`` before features touching business rules
+- **Production Rules**: Check ``QUALITY.md``, ``SECURITY.md``, ``ENVIRONMENTS.md``, and ``OBSERVABILITY.md`` before implementation
+- **Exploration**: Check ``DISCOVERY.md`` before starting significant new features
 
 ## Context budget rules
-Context window is finite. Curate it — do not fill it indiscriminately.
+Context window is finite. Curate it — do not fill it indiscriminately. Target a
+60-80% utilization rate for optimal reasoning performance; exceeding 80% severely
+degrades your ability to follow complex logic.
 
 **What to always include (small, high-signal):**
 - SESSION.md handoff — the compressed state of the last session
@@ -2123,6 +2134,18 @@ across sessions (ACE principle: execution feedback updating bullet metadata).
 - No speculative implementation: if the spec is ambiguous, flag in SESSION.md — do not guess
 - When you hit a failure: update ``gotchas.md`` in the relevant skill folder before continuing
 
+## Execution Plans (PLANS.md)
+When writing complex features, refactoring significant components, or embarking on multi-hour tasks:
+- **Always use an ExecPlan** (as described in PLANS.md) from design to implementation
+- ExecPlans are living documents — update their Progress, Decision Log, and Discovery sections at every stopping point
+- Never proceed with a complex task without a concrete, approved ExecPlan in place
+
+## Doc Gardening Protocol
+Codebases drift. You are responsible for ensuring the context layer remains accurate.
+- Periodically check whether CONTEXT.md, DOMAIN.md, and the active skill's gotchas.md still match the codebase
+- If you notice documentation that is stale, inaccurate, or missing key decisions: autonomously update it
+- Stale context is a bug. Fix it just like you would fix broken code.
+
 ## Agentic loop protocol
 Every action must follow this cycle. No exceptions.
 
@@ -2136,11 +2159,11 @@ Every action must follow this cycle. No exceptions.
 6. **Verify** — On success, confirm the result satisfies the original goal before moving on.
    A passing test is not a passing feature — check against the user's stated intent.
 
-**Anti-patterns to avoid:**
-- Acting without stating the goal (makes evaluation impossible)
-- Skipping evaluation after an action (leads to cascading failures)
-- Retrying the same approach verbatim (insanity loop)
-- Marking done without verifying against acceptance criteria (silent degradation)
+**Discipline checklist — confirm each step before moving on:**
+- State the goal and success criteria before every action
+- Evaluate the result of every action against QUALITY.md gates
+- Vary your approach on retry — change at least one variable each attempt
+- Verify the final result against acceptance criteria before marking done
 
 
 ## On-demand hooks
@@ -2205,10 +2228,59 @@ Set ``Status: ESCALATE`` in SESSION.md when:
 
 Do not proceed past an ESCALATE. The next session begins by resolving it.
 
+## Agent directives
+
+<use_parallel_tool_calls>
+If you intend to call multiple tools and there are no dependencies between the calls,
+make all of the independent calls in parallel. When reading multiple files, read them
+all simultaneously. When searching across files, run searches in parallel.
+If some tool calls depend on previous results, execute them sequentially.
+</use_parallel_tool_calls>
+
+<investigate_before_answering>
+Read the referenced file before answering questions about it. Investigate and read
+relevant files BEFORE answering questions about the codebase. Ground every claim
+in observed file content or command output. Give hallucination-free answers.
+</investigate_before_answering>
+
+<default_to_action>
+Implement changes rather than only suggesting them. If the user's intent is unclear,
+infer the most useful likely action and proceed, using tools to discover missing details
+instead of guessing. Try to infer whether a tool call (e.g., file edit or read) is
+intended, and act accordingly.
+</default_to_action>
+
+<post_retrieval_filtering>
+After retrieving files or search results, filter out irrelevant sections before
+consuming the context into your active reasoning space. Do not blindly load
+large blocks of code if only a single function is relevant.
+</post_retrieval_filtering>
+
+<probe_based_evaluation>
+Before acting on complex domain rules or architecture, probe your retrieved
+context by explicitly stating your assumptions and verifying they match the
+documentation. If there's a mismatch, re-read the static context layer.
+</probe_based_evaluation>
+
+<reversibility_check>
+Take local, reversible actions freely (editing files, running tests, reading code).
+For actions that are hard to reverse (force-push, database drops, deleting branches),
+affect shared systems, or could be destructive — confirm with the user before proceeding.
+When encountering obstacles, choose reversible approaches over destructive shortcuts.
+</reversibility_check>
+
+<scope_discipline>
+Only make changes that are directly requested or clearly necessary. Keep solutions
+simple and focused. A bug fix does not need surrounding code cleaned up. A simple
+feature does not need extra configurability. Design for the current task, not
+hypothetical future requirements. The right amount of complexity is the minimum
+needed for the current task.
+</scope_discipline>
+
 ## Scope
 - Read:  ``CONTEXT.md``, ``TASKS.md``, ``WORKSTREAMS.md``, ``DOMAIN.md``, ``QUALITY.md``, ``SECURITY.md``, ``ENVIRONMENTS.md``, ``OBSERVABILITY.md``, ``DISCOVERY.md``, ``src/`` (on demand), ``skills/*/SKILL.md``, ``skills/*/gotchas.md``
 - Write: ``src/``, ``scratchpads/$id/``, ``skills/*/gotchas.md`` (append only), ``skills/*/assets/``, ``skills/*/outputs/``, ``DISCOVERY.md`` (append only), ``WORKSTREAMS.md`` (status updates only), ``DOMAIN.md`` (append only)
-- Avoid: ``agents/``, ``memory/decisions/`` (append only — never edit existing entries)
+- Append only: ``agents/``, ``memory/decisions/`` — preserve existing entries
 
 ## Reference
 $url
@@ -2248,7 +2320,9 @@ function Build-ContextMd {
     } else { "None" }
 
     return @"
-# CONTEXT.md — Project Source of Truth
+# CONTEXT.md — Static-Context Cache Layer
+> This file represents the static baseline of the project. Cache this
+> understanding and only re-read when architecture or fundamental NFRs change.
 
 ## Project
 **Name:** $($Project.Name)
@@ -2371,6 +2445,7 @@ function Build-TasksMd {
 ### Backlog — Foundation
 - [ ] Confirm architecture decisions in CONTEXT.md; log any changes to memory/decisions/
 - [ ] Define data models and API contracts before implementation
+- [ ] Implement stack-specific lint configs (ESLint, Ruff, etc.) to enforce quality locally
 - [ ] Set up CI pipeline with lint, test, and security audit gates
 - [ ] Configure observability stack per OBSERVABILITY.md$intakeTasks
 
@@ -2389,6 +2464,98 @@ $skillBacklog
 ---
 *Update after every agent session. A task is not done until QUALITY.md gates pass.*
 *ESCALATE items in SESSION.md take priority over all backlog work.*
+"@
+}
+
+function Build-PlansMd {
+    return @"
+# PLANS.md — Execution Plan Specification
+
+> **What is this?** An Execution Plan (ExecPlan) is a living design document that a coding agent or human follows to deliver a complex feature. Use this template for any multi-hour task, significant refactor, or risky implementation.
+
+## How to use ExecPlans
+
+When authoring an ExecPlan, start from the skeleton below. As you research and implement, keep all sections up to date. Add or split entries in the Progress list at every stopping point to affirmatively state the progress made and next steps. 
+
+ExecPlans are living documents — it should always be possible to restart from *only* the ExecPlan and no other work.
+
+## Core Requirements
+
+1. **Self-contained**: Assume the reader is a novice with no prior context. Define terms, repeat assumptions, and embed required knowledge rather than linking out.
+2. **Behavior-focused**: Describe observable outcomes ("navigating to /health returns HTTP 200"), not just code changes ("added HealthCheck struct").
+3. **Idempotent and safe**: Write steps so they can be run multiple times safely. Provide rollback paths for risky operations.
+4. **Validation-first**: Include instructions to run tests, start the system, and observe it doing something useful. Validation is not optional.
+
+---
+
+# Skeleton of a Good ExecPlan
+
+*Copy this skeleton to a new file (e.g., `docs/plans/feature-name.md`) when starting a complex task.*
+
+## Purpose / Big Picture
+Explain in a few sentences what someone gains after this change and how they can see it working. State the user-visible behavior you will enable.
+
+## Progress
+Use a list with checkboxes to summarize granular steps. Every stopping point must be documented here.
+- [ ] (YYYY-MM-DD HH:MM) Example step 1.
+- [ ] Example step 2.
+
+## Surprises & Discoveries
+Document unexpected behaviors, bugs, optimizations, or insights discovered during implementation. Provide concise evidence.
+- **Observation:** ...
+  **Evidence:** ...
+
+## Decision Log
+Record every decision made while working on the plan.
+- **Decision:** ...
+  **Rationale:** ...
+  **Date/Author:** ...
+
+## Context and Orientation
+Describe the current state relevant to this task as if the reader knows nothing. Name the key files and modules by full path. Define any non-obvious term you will use.
+
+## Plan of Work
+Describe the sequence of edits and additions. For each edit, name the file and location and what to insert or change. Keep it concrete and minimal.
+
+## Concrete Steps & Validation
+State the exact commands to run and where to run them. When a command generates output, show a short expected transcript so the reader can compare. Describe how to start the system and what to observe.
+
+## Outcomes & Retrospective
+*(Fill this out at completion)* Summarize outcomes, gaps, and lessons learned. Compare the result against the original purpose.
+"@
+}
+
+function Build-PlanTemplateMd {
+    return @"
+# ExecPlan: [Feature Name]
+
+## Purpose / Big Picture
+[Explain what someone gains after this change and how they can see it working.]
+
+## Progress
+- [ ] (YYYY-MM-DD HH:MM) [Step 1]
+- [ ] [Step 2]
+
+## Surprises & Discoveries
+- **Observation:** ...
+  **Evidence:** ...
+
+## Decision Log
+- **Decision:** ...
+  **Rationale:** ...
+  **Date/Author:** ...
+
+## Context and Orientation
+[Describe the current state relevant to this task. Name the key files and modules by full path.]
+
+## Plan of Work
+[Describe the sequence of edits and additions.]
+
+## Concrete Steps & Validation
+[State the exact commands to run, expected output transcripts, and validation steps.]
+
+## Outcomes & Retrospective
+[Summarize outcomes and lessons learned at completion.]
 "@
 }
 
@@ -3108,6 +3275,13 @@ Any accepted quality exception must be logged in memory/decisions/ with:
 - Why it was accepted
 - What the remediation plan is and by when
 - Severity: HIGH minimum (CRITICAL if security-related)
+
+## Entropy Control (Golden Principles)
+Codebases naturally degrade over time. Agents must actively fight entropy by enforcing these golden principles when modifying existing code:
+- **Centralize shared utilities:** If you see the same logic in two places, extract it to a shared module.
+- **Prune dead code:** If you replace a function or deprecate a feature, delete the old code immediately. Do not leave it commented out.
+- **Refactor as you go:** If you touch a file that violates current style or architecture standards, upgrade it to the new standard as part of your PR.
+$($Type.entropyControl)
 "@
 }
 
@@ -3259,6 +3433,14 @@ Structured JSON preferred. Every log entry must include:
 
 ---
 
+## Application Legibility
+The system must be transparent to both humans and agents during runtime.
+- **Correlation IDs:** Every external request must generate or inherit a trace ID passed to all downstream services and logs.
+- **Health endpoints:** The system must expose a ``/_health` or similar endpoint returning component status and version.
+- **Readiness/Liveness:** For orchestrated deployments (e.g., Kubernetes), expose distinct liveness and readiness probes.
+
+---
+
 ## Tooling decisions (fill in before first production deploy)
 
 | Concern | Tool chosen | Rationale | ADR reference |
@@ -3318,17 +3500,21 @@ function Build-SessionMd {
 ---
 
 ### Context cost
+- Target utilization: [ ] Optimal (60-80%)  [ ] Over-budget (>80%)  [ ] Under-utilized (<60%)
 - Files loaded at start:
 - Avoidable re-reads:
+- Compression ratio (tokens consumed vs produced): 
 - Cost: [ ] Low (<5k tokens)  [ ] Medium (5–15k)  [ ] High (>15k)
 - **Efficiency note:** *(one sentence — what drove cost? what to skip next time?)*
 - **Leverage note:** *(one sentence — what was discovered beyond the task? high leverage = understanding, not just execution)*
+- **Context drift check:** [ ] Is current execution still aligned with the milestone? (If no, ESCALATE)
 
 ---
 
 ### Delta — what changed this session
 
 > ACE principle: record specific deltas, not summaries.
+> Anchored iterative summarization: anchor the state transfer to the original milestone goal.
 > "Updated auth.ts line 47 to fix token expiry" beats "worked on auth".
 > These bullets are the raw material for gotchas.md and memory/decisions/.
 
@@ -4349,6 +4535,10 @@ function Build-Gitignore {
 # Commit SESSION.md and NOTES.md only if your team wants shared session history
 scratchpads/
 
+# Agent-local config (personal settings, not committed)
+# Team-shared configs (.claude/rules/, .claude/commands/, etc.) ARE committed
+.claude/settings.local.json
+
 # Secrets — never commit these
 .env
 .env.local
@@ -4927,6 +5117,420 @@ hilt                            = { id = "com.google.dagger.hilt.android",      
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# NATIVE AGENT CONFIG BUILDERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+function Build-NativeAgentFiles {
+    param($Agent, $Project, $Skills, $Type, [string]$Root)
+    $nc = $Agent.nativeConfig
+    if (-not $nc) { return }
+
+    switch ($Agent.id) {
+        "claude-code"  { Build-ClaudeNativeConfig  -Project $Project -Skills $Skills -Type $Type -Root $Root }
+        "gemini-cli"   { Build-GeminiNativeConfig   -Project $Project -Root $Root }
+        "opencode"     { Build-OpenCodeNativeConfig -Project $Project -Root $Root }
+        "aider"        { Build-AiderNativeConfig    -Project $Project -Root $Root }
+        "deepagents"   { Build-DeepAgentsNativeConfig -Project $Project -Root $Root }
+        "antigravity"  { Build-AntigravityNativeConfig -Project $Project -Skills $Skills -Root $Root }
+    }
+}
+
+function Build-ClaudeNativeConfig {
+    param($Project, $Skills, $Type, [string]$Root)
+
+    # .claude/settings.json — permissions and safety
+    $settingsObj = @{
+        permissions = @{
+            allow = @(
+                "Read(*)"
+                "Write(src/**)"
+                "Write(skills/**)"
+                "Write(scratchpads/**)"
+                "Write(memory/**)"
+                "Write(TASKS.md)"
+                "Write(DISCOVERY.md)"
+                "Write(WORKSTREAMS.md)"
+            )
+            deny = @(
+                "Write(.env*)"
+                "Write(*.pem)"
+                "Write(*.key)"
+            )
+        }
+    }
+    Emit ".claude\settings.json" ($settingsObj | ConvertTo-Json -Depth 4) $Root
+
+    # .claude/rules/security.md — path-scoped, lazy-loaded when touching auth/security files
+    $secRules = @"
+---
+paths:
+  - "**/auth/**"
+  - "**/security/**"
+  - "**/crypto/**"
+  - "**/*auth*"
+  - "**/*token*"
+  - "**/*session*"
+  - "SECURITY.md"
+---
+# Security Rules
+
+These rules activate when you touch authentication, security, or cryptography files.
+
+## Mandatory checks
+- Read SECURITY.md before any implementation in these paths
+- All auth flows must validate tokens server-side — never trust client-only validation
+- Secrets must come from environment variables — never hardcode credentials
+- Log security decisions to memory/decisions/ with Severity: CRITICAL
+- Rate-limit all authentication endpoints
+- Sanitize and validate all external inputs before processing
+
+## Before committing
+- Confirm no secrets in diff (API keys, passwords, tokens, connection strings)
+- Confirm no PII in log statements
+- Confirm error messages do not leak internal structure
+"@
+    Emit ".claude\rules\security.md" $secRules $Root
+
+    # .claude/rules/quality.md — path-scoped, lazy-loaded when touching source files
+    $qualRules = @"
+---
+paths:
+  - "**/src/**"
+  - "**/lib/**"
+  - "**/app/**"
+  - "**/components/**"
+  - "**/services/**"
+---
+# Quality Rules
+
+These rules activate when you modify source code.
+
+## Before marking any task complete
+- Verify against every applicable gate in QUALITY.md
+- Run tests — a passing build is not a passing feature
+- Check the relevant skill spec in skills/ if implementing a skill
+- Update gotchas.md if you hit a failure pattern
+
+## Code standards
+- Explicit return types on public functions and API boundaries
+- Functions exceeding 50 lines should be evaluated for extraction
+- No dead or commented-out code in committed files
+- All external inputs validated at the boundary
+"@
+    Emit ".claude\rules\quality.md" $qualRules $Root
+
+    # .claude/commands/implement.md — workflow command
+    $implCmd = @"
+# /project:implement — Skill Implementation Workflow
+
+When the user invokes this command, follow this sequence:
+
+1. **Identify the skill**: Ask which skill to implement, or infer from context
+2. **Read the spec**: Load ``skills/<id>/SKILL.md`` — understand acceptance criteria
+3. **Read gotchas**: Load ``skills/<id>/gotchas.md`` — start with highest-confidence entries
+4. **Propose contract**: Map each acceptance criterion to a testable verification step
+5. **Implement**: Write the code, following QUALITY.md gates
+6. **Verify**: Run tests, check each acceptance criterion against your contract
+7. **Update gotchas**: If you hit any failure patterns, append to gotchas.md
+8. **Report**: Summarise what was done, what was verified, what remains
+"@
+    Emit ".claude\commands\implement.md" $implCmd $Root
+
+    # .claude/commands/handoff.md — session handoff
+    $handoffCmd = @"
+# /project:handoff — Session Handoff
+
+When the user invokes this command, perform a clean session handoff:
+
+1. **Write SESSION.md delta**: Prepend a new block to ``scratchpads/claude-code/SESSION.md``
+   - Record: decisions made, files modified, exact state of each touched file
+   - Use specific deltas (file:line, exact errors) not polished summaries
+2. **Promote decisions**: Move any architectural decisions to ``memory/decisions/``
+3. **Set status**: Choose one of:
+   - **Complete** — all acceptance criteria met, QUALITY.md gates passed
+   - **Partial** — work is incomplete, next action clearly stated
+   - **ESCALATE** — blocked on a decision that requires human review
+4. **Update TASKS.md**: Mark completed items, note in-progress items
+5. **Final check**: Confirm SESSION.md has enough detail for the next session to resume without re-reading source files
+"@
+    Emit ".claude\commands\handoff.md" $handoffCmd $Root
+
+    # .claude/commands/review.md — code review against quality gates
+    $reviewCmd = @"
+# /project:review — Quality Gate Review
+
+When the user invokes this command, review the current work against quality gates:
+
+1. **Load QUALITY.md**: Read all applicable quality gates
+2. **Identify changes**: Check git diff or recent modifications
+3. **Gate check**: For each applicable gate:
+   - Pass: note what was verified
+   - Fail: note what needs fixing and suggest specific remediation
+   - N/A: note why the gate does not apply
+4. **Security scan**: Check for hardcoded secrets, unsanitised inputs, PII in logs
+5. **Report**: Produce a structured pass/fail summary with actionable items
+"@
+    Emit ".claude\commands\review.md" $reviewCmd $Root
+
+    Write-Done "Native config: .claude/ (settings, rules, commands)"
+}
+
+function Build-GeminiNativeConfig {
+    param($Project, [string]$Root)
+
+    # .gemini/settings.json — model and sandbox defaults
+    $settingsObj = @{ sandbox = $true }
+    Emit ".gemini\settings.json" ($settingsObj | ConvertTo-Json -Depth 3) $Root
+
+    # .gemini/GEMINI.md — scoped context (loaded in addition to root GEMINI.md)
+    $gemCtx = @"
+# Gemini CLI — Project-Scoped Context
+
+> This file is loaded automatically by Gemini CLI when working in this project.
+> It supplements the root GEMINI.md with project-specific constraints.
+
+## Security constraints
+- Read SECURITY.md before any work touching auth, tokens, or credentials
+- Never hardcode secrets — use environment variables
+- Log security decisions to ``memory/decisions/`` with Severity: CRITICAL
+
+## Quality constraints
+- Verify against QUALITY.md gates before marking any task complete
+- Run tests after every implementation change
+- Update ``skills/<id>/gotchas.md`` when you encounter failure patterns
+
+## Context management
+- Read ``scratchpads/gemini-cli/SESSION.md`` at session start for handoff state
+- Write SESSION.md delta before ending any session
+- Use NOTES.md for cross-session observations
+"@
+    Emit ".gemini\GEMINI.md" $gemCtx $Root
+
+    Write-Done "Native config: .gemini/ (settings, context)"
+}
+
+function Build-OpenCodeNativeConfig {
+    param($Project, [string]$Root)
+
+    # .opencode/agents/researcher.md — research-focused agent
+    $researchAgent = @"
+# Researcher Agent
+
+You are a research-focused agent for $($Project.Name).
+Your role is to investigate, understand, and document — not to implement.
+
+## Behaviour
+- Read CONTEXT.md and DOMAIN.md before investigating
+- Document findings in DISCOVERY.md
+- When comparing approaches, record both options with trade-offs
+- Do not modify ``src/`` files — your scope is documentation and analysis
+- Promote confirmed decisions to ``memory/decisions/``
+
+## Outputs
+- DISCOVERY.md entries with hypothesis, method, outcome
+- ``memory/decisions/`` entries for confirmed architectural choices
+"@
+    Emit ".opencode\agents\researcher.md" $researchAgent $Root
+
+    # .opencode/agents/implementer.md — implementation-focused agent
+    $implAgent = @"
+# Implementer Agent
+
+You are an implementation-focused agent for $($Project.Name).
+Your role is to write code that passes quality gates.
+
+## Behaviour
+- Read the relevant SKILL.md before implementing any feature
+- Read gotchas.md before starting — avoid known failure patterns
+- Verify against QUALITY.md gates before marking work complete
+- Update gotchas.md if you hit any new failure patterns
+- Write SESSION.md delta when stopping mid-task
+
+## Scope
+- Write: ``src/``, ``skills/*/outputs/``, ``scratchpads/opencode/``
+- Read: CONTEXT.md, QUALITY.md, SECURITY.md, ``skills/*/SKILL.md``
+- Append only: ``memory/decisions/``, DISCOVERY.md
+"@
+    Emit ".opencode\agents\implementer.md" $implAgent $Root
+
+    Write-Done "Native config: .opencode/agents/ (researcher, implementer)"
+}
+
+function Build-AiderNativeConfig {
+    param($Project, [string]$Root)
+
+    # .aider.conf.yml — auto-load context files at session start
+    $confYml = @"
+# Aider project configuration — generated by Msingi v$VERSION
+# Auto-loads context files so Aider starts with project knowledge
+
+read:
+  - agents/AIDER.md
+  - CONTEXT.md
+  - QUALITY.md
+  - TASKS.md
+"@
+    Emit ".aider.conf.yml" $confYml $Root
+
+    # .aiderignore — keep Aider's context clean
+    $aiderIgnore = @"
+# Msingi scaffold — exclude from Aider repo map
+# Context files are loaded explicitly via .aider.conf.yml read: key
+scratchpads/
+memory/
+skills/*/outputs/
+skills/*/assets/
+skills/*/references/
+workstreams/
+
+# Other agent config directories
+.claude/
+.gemini/
+.opencode/
+.deepagents/
+.agent/
+
+# Build artifacts and dependencies
+node_modules/
+dist/
+build/
+.next/
+__pycache__/
+.venv/
+vendor/
+.gradle/
+"@
+    Emit ".aiderignore" $aiderIgnore $Root
+
+    Write-Done "Native config: .aider.conf.yml, .aiderignore"
+}
+
+function Build-DeepAgentsNativeConfig {
+    param($Project, [string]$Root)
+
+    # .deepagents/AGENTS.md — project-specific persistent context
+    $daCtx = @"
+# Deep Agents — Project Context
+
+**Project:** $($Project.Name)
+**Type:** $($Project.TypeLabel)
+
+## Session protocol
+1. Read ``scratchpads/deepagents/SESSION.md`` for handoff state
+2. Read TASKS.md for current work
+3. Read the relevant SKILL.md before implementing any feature
+4. Verify against QUALITY.md gates before marking work complete
+
+## Rules
+- Security decisions logged in ``memory/decisions/`` with Severity: CRITICAL
+- Update ``skills/<id>/gotchas.md`` when you encounter failure patterns
+- Write SESSION.md delta before ending any session
+- Set Status: ESCALATE when blocked on human-required decisions
+
+## Scope
+- Read: CONTEXT.md, QUALITY.md, SECURITY.md, ``skills/*/SKILL.md``
+- Write: ``src/``, ``scratchpads/deepagents/``, ``skills/*/outputs/``
+- Append only: ``memory/decisions/``, DISCOVERY.md, DOMAIN.md
+"@
+    Emit ".deepagents\AGENTS.md" $daCtx $Root
+
+    Write-Done "Native config: .deepagents/ (AGENTS.md)"
+}
+
+function Build-AntigravityNativeConfig {
+    param($Project, $Skills, [string]$Root)
+
+    # .agent/rules/security.md
+    $secRules = @"
+# Security Rules
+
+## When to apply
+These rules apply when modifying any file related to authentication, authorization,
+secrets management, cryptography, or data privacy.
+
+## Mandatory checks
+- Read SECURITY.md before any implementation touching auth or credentials
+- Secrets must come from environment variables — never hardcode credentials
+- All auth flows must validate tokens server-side
+- Log security decisions to ``memory/decisions/`` with Severity: CRITICAL
+- Rate-limit all authentication endpoints
+- Sanitize and validate all external inputs at the boundary
+- Error messages must not leak internal structure or stack traces
+- No PII in application logs
+"@
+    Emit ".agent\rules\security.md" $secRules $Root
+
+    # .agent/rules/quality.md
+    $qualRules = @"
+# Quality Rules
+
+## When to apply
+These rules apply when modifying source code or marking tasks complete.
+
+## Before marking any task complete
+- Verify against every applicable gate in QUALITY.md
+- Run tests — a passing build is not a passing feature
+- Check the relevant skill spec in ``skills/`` if implementing a skill
+- Update gotchas.md if you hit a failure pattern
+
+## Code standards
+- Explicit return types on public functions and API boundaries
+- Functions exceeding 50 lines should be evaluated for extraction
+- No dead or commented-out code in committed files
+- All external inputs validated at the boundary
+- Write tests for new business logic before marking a task complete
+"@
+    Emit ".agent\rules\quality.md" $qualRules $Root
+
+    # .agent/commands/implement.md
+    $implCmd = @"
+# /implement — Skill Implementation Workflow
+
+1. **Identify the skill**: Ask which skill to implement, or infer from context
+2. **Read the spec**: Load ``skills/<id>/SKILL.md`` — understand acceptance criteria
+3. **Read gotchas**: Load ``skills/<id>/gotchas.md`` — highest-confidence entries first
+4. **Propose contract**: Map each acceptance criterion to a testable verification step
+5. **Implement**: Write the code, following QUALITY.md gates
+6. **Verify**: Run tests, check each acceptance criterion
+7. **Update gotchas**: Append to gotchas.md if you hit failure patterns
+8. **Report**: Summarise what was done, what was verified, what remains
+"@
+    Emit ".agent\commands\implement.md" $implCmd $Root
+
+    # .agent/commands/handoff.md
+    $handoffCmd = @"
+# /handoff — Session Handoff
+
+1. **Write SESSION.md delta**: Prepend a new block to ``scratchpads/antigravity/SESSION.md``
+   - Record: decisions made, files modified, exact state of each touched file
+   - Use specific deltas (file:line, exact errors) not polished summaries
+2. **Promote decisions**: Move architectural decisions to ``memory/decisions/``
+3. **Set status**: Complete | Partial | ESCALATE
+4. **Update TASKS.md**: Mark completed items, note in-progress items
+5. **Confirm**: SESSION.md has enough detail for the next session to resume
+"@
+    Emit ".agent\commands\handoff.md" $handoffCmd $Root
+
+    # .agent/workflows/review.md
+    $reviewWf = @"
+# Review Workflow
+
+## Purpose
+Review current work against quality gates and security requirements.
+
+## Steps
+1. Load QUALITY.md — read all applicable quality gates
+2. Identify changes — check recent modifications
+3. For each applicable gate: pass, fail (with remediation), or N/A (with reason)
+4. Security scan — check for hardcoded secrets, unsanitised inputs, PII in logs
+5. Produce a structured pass/fail summary
+"@
+    Emit ".agent\workflows\review.md" $reviewWf $Root
+
+    Write-Done "Native config: .agent/ (rules, commands, workflows)"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # WRITE HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
 function Write-ProjectFile {
@@ -5002,10 +5606,21 @@ function Show-ExecutionPlan {
     Write-Host ""
 
     # ── Files to generate ───────────────────────────────────────────────────────
-    Write-Host "  $(hi "FILES") (18 files)"
+    Write-Host "  $(hi "FILES")"
     Write-Host "    CONTEXT.md, TASKS.md, DOMAIN.md, WORKSTREAMS.md"
     Write-Host "    SECURITY.md, QUALITY.md, OBSERVABILITY.md, ENVIRONMENTS.md"
-    Write-Host "    agents/, skills/, scratchpads/, memory/"
+    Write-Host "    agents/, skills/, scratchpads/, memory/, docs/, .plans/"
+    # Native config directories per agent
+    foreach ($a in $Agents) {
+        $nc = $a.nativeConfig
+        if ($nc -and $nc.configDir) {
+            $supList = ($nc.supports | ForEach-Object { $_ }) -join ", "
+            Write-Host "    $(dim "$($nc.configDir)/") ($supList)"
+        } elseif ($nc -and $nc.supports) {
+            $supList = ($nc.supports | ForEach-Object { $_ }) -join ", "
+            Write-Host "    $(dim "$($a.name):") $supList"
+        }
+    }
     Write-Host ""
 
     Write-Rule
@@ -5079,9 +5694,18 @@ function Show-Review {
     # ── Files panel ───────────────────────────────────────────────────────────
     Write-Section "Generated files"
     Write-Info "CONTEXT.md  TASKS.md  DISCOVERY.md  WORKSTREAMS.md  DOMAIN.md"
-    Write-Info "CHANGELOG.md  STRUCTURE.md  README.md"
+    Write-Info "CHANGELOG.md  STRUCTURE.md  README.md  PLANS.md"
     Write-Info "QUALITY.md  SECURITY.md  ENVIRONMENTS.md  OBSERVABILITY.md"
-    Write-Info "agents/  skills/<id>/{SKILL.md,gotchas.md,scripts/}  scratchpads/  memory/decisions/"
+    Write-Info "agents/  skills/<id>/{SKILL.md,gotchas.md,scripts/}  scratchpads/  memory/decisions/  docs/  .plans/"
+    foreach ($a in $Agents) {
+        $nc = $a.nativeConfig
+        if ($nc -and $nc.configDir) {
+            $supList = ($nc.supports | ForEach-Object { $_ }) -join ", "
+            Write-Info "$($nc.configDir)/ ($supList)  $(dim "← $($a.name) native")"
+        } elseif ($nc -and $nc.supports) {
+            Write-Info "$($a.name) native: $(($nc.supports | ForEach-Object { $_ }) -join ', ')"
+        }
+    }
     if ($Project.TypeId -eq "android") {
         Write-Info "GRADLE.md  gradle/libs.versions.toml  proguard-rules.pro"
     }
@@ -6005,10 +6629,26 @@ if ($currentStep -ge $totalSteps) {
         (Join-Path $root "memory\decisions"),
         (Join-Path $root "workstreams"),
         (Join-Path $root "workstreams\_coordinator"),
-        (Join-Path $root "src")
+        (Join-Path $root "src"),
+        (Join-Path $root "docs"),
+        (Join-Path $root ".plans")
     )
     foreach ($a in $selectedAgents) { $dirs += Join-Path $root "scratchpads\$($a.scratchpad)" }
     if ($project.TypeId -eq "android") { $dirs += Join-Path $root "gradle\wrapper" }
+    # Native agent config directories
+    foreach ($a in $selectedAgents) {
+        $nc = $a.nativeConfig
+        if ($nc -and $nc.configDir) {
+            $nativeDir = Join-Path $root $nc.configDir
+            $dirs += $nativeDir
+            $supports = @($nc.supports)
+            if ($supports -contains "rules")     { $dirs += Join-Path $nativeDir "rules" }
+            if ($supports -contains "commands")  { $dirs += Join-Path $nativeDir "commands" }
+            if ($supports -contains "agents")    { $dirs += Join-Path $nativeDir "agents" }
+            if ($supports -contains "workflows") { $dirs += Join-Path $nativeDir "workflows" }
+            if ($supports -contains "skills")    { $dirs += Join-Path $nativeDir "skills" }
+        }
+    }
     # Skill subfolders — each skill is a folder with SKILL.md, gotchas.md, scripts/, assets/, references/, outputs/
     foreach ($s in $selectedSkills) {
         $dirs += Join-Path $root "skills\$($s.id)"
@@ -6030,6 +6670,8 @@ if ($currentStep -ge $totalSteps) {
     Emit "WORKSTREAMS.md"  (Build-WorkstreamsMd  -Project $project -Agents $selectedAgents) $root
     Emit "DOMAIN.md"       (Build-DomainMd       -Project $project -Type $selectedType) $root
     Emit "CHANGELOG.md"    (Build-ChangelogMd    -Project $project) $root
+    Emit "PLANS.md"        (Build-PlansMd)       $root
+    Emit ".plans\template.md" (Build-PlanTemplateMd) $root
     Emit "STRUCTURE.md"    (Build-StructureMd    -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
     Emit "README.md"       (Build-ReadmeMd       -Project $project -Agents $selectedAgents -Skills $selectedSkills) $root
 
@@ -6057,6 +6699,11 @@ if ($currentStep -ge $totalSteps) {
     # Agent configs
     foreach ($a in $selectedAgents) {
         Emit "agents\$($a.file)" (Build-AgentConfig -Agent $a -Project $project) $root
+    }
+
+    # Native agent config directories (per-agent native files)
+    foreach ($a in $selectedAgents) {
+        Build-NativeAgentFiles -Agent $a -Project $project -Skills $selectedSkills -Type $selectedType -Root $root
     }
 
     # Scratchpads
