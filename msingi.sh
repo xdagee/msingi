@@ -200,7 +200,9 @@ read_choice() {
 # ═══════════════════════════════════════════════════════════════════════════════
 build_context_md() {
     cat <<EOF
-# CONTEXT.md — msingi Canonical Source of Truth
+# CONTEXT.md — Static-Context Cache Layer
+> This file represents the static baseline of the project. Cache this
+> understanding and only re-read when architecture or fundamental NFRs change.
 Project: ${1:-Project}
 Msingi v${VERSION}
 Generated: $(date)
@@ -265,6 +267,195 @@ Do not use this file to manually track task lists. This file defines the rules o
 EOF
 }
 
+build_plans_md() {
+    cat <<EOF
+# PLANS.md — Execution Plan Specification
+
+> **What is this?** An Execution Plan (ExecPlan) is a living design document that a coding agent or human follows to deliver a complex feature. Use this template for any multi-hour task, significant refactor, or risky implementation.
+
+## How to use ExecPlans
+
+When authoring an ExecPlan, start from the skeleton below. As you research and implement, keep all sections up to date. Add or split entries in the Progress list at every stopping point to affirmatively state the progress made and next steps. 
+
+ExecPlans are living documents — it should always be possible to restart from *only* the ExecPlan and no other work.
+
+## Core Requirements
+
+1. **Self-contained**: Assume the reader is a novice with no prior context. Define terms, repeat assumptions, and embed required knowledge rather than linking out.
+2. **Behavior-focused**: Describe observable outcomes ("navigating to /health returns HTTP 200"), not just code changes ("added HealthCheck struct").
+3. **Idempotent and safe**: Write steps so they can be run multiple times safely. Provide rollback paths for risky operations.
+4. **Validation-first**: Include instructions to run tests, start the system, and observe it doing something useful. Validation is not optional.
+
+---
+
+# Skeleton of a Good ExecPlan
+
+*Copy this skeleton to a new file (e.g., \`.plans/feature-name.md\`) when starting a complex task.*
+
+## Purpose / Big Picture
+Explain in a few sentences what someone gains after this change and how they can see it working. State the user-visible behavior you will enable.
+
+## Progress
+Use a list with checkboxes to summarize granular steps. Every stopping point must be documented here.
+- [ ] (YYYY-MM-DD HH:MM) Example step 1.
+- [ ] Example step 2.
+
+## Surprises & Discoveries
+Document unexpected behaviors, bugs, optimizations, or insights discovered during implementation. Provide concise evidence.
+
+## Decision Log
+Record every decision made while working on the plan.
+- **Decision:** ...
+  **Rationale:** ...
+  **Date/Author:** ...
+
+## Context and Orientation
+Describe the current state relevant to this task as if the reader knows nothing. Name the key files and modules by full path. Define any non-obvious term you will use.
+
+## Plan of Work
+Describe the sequence of edits and additions. For each edit, name the file and location and what to insert or change. Keep it concrete and minimal.
+
+## Concrete Steps & Validation
+State the exact commands to run and where to run them. When a command generates output, show a short expected transcript so the reader can compare. Describe how to start the system and what to observe.
+
+## Outcomes & Retrospective
+*(Fill this out at completion)* Summarize outcomes, gaps, and lessons learned. Compare the result against the original purpose.
+EOF
+}
+
+build_plan_template_md() {
+    cat <<EOF
+# ExecPlan: [Feature Name]
+
+## Purpose / Big Picture
+[Explain what someone gains after this change and how they can see it working.]
+
+## Progress
+- [ ] (YYYY-MM-DD HH:MM) [Step 1]
+- [ ] [Step 2]
+
+## Surprises & Discoveries
+- **Observation:** ...
+  **Evidence:** ...
+
+## Decision Log
+- **Decision:** ...
+  **Rationale:** ...
+  **Date/Author:** ...
+
+## Context and Orientation
+[Describe the current state relevant to this task. Name the key files and modules by full path.]
+
+## Plan of Work
+[Describe the sequence of edits and additions.]
+
+## Concrete Steps & Validation
+[State the exact commands to run, expected output transcripts, and validation steps.]
+
+## Outcomes & Retrospective
+[Summarize outcomes and lessons learned at completion.]
+EOF
+}
+
+build_quality_md() {
+    cat <<EOF
+# QUALITY.md — Production Quality Gates
+
+**Project:** ${PROJECT_NAME:-Project}
+
+> These are not suggestions. A feature is not complete until every applicable
+> gate below is checked. Agents self-verify — do not mark done and move on.
+> Gates that cannot be met without changing requirements trigger an ESCALATE.
+
+---
+
+## Gate verification process
+
+When an agent completes a feature:
+1. Confirm it passes, or document why it does not apply
+2. Write verification results to scratchpads/[agent]/NOTES.md
+3. If any gate fails: either fix it (preferred) or log the exception in memory/decisions/
+   with Severity: HIGH and the rationale for accepting the exception
+4. Only then mark the task done in TASKS.md
+
+## Entropy Control (Golden Principles)
+Codebases naturally degrade over time. Agents must actively fight entropy by enforcing these golden principles when modifying existing code:
+- **Centralize shared utilities:** If you see the same logic in two places, extract it to a shared module.
+- **Prune dead code:** If you replace a function or deprecate a feature, delete the old code immediately. Do not leave it commented out.
+- **Refactor as you go:** If you touch a file that violates current style or architecture standards, upgrade it to the new standard as part of your PR.
+EOF
+}
+
+build_observability_md() {
+    cat <<EOF
+# OBSERVABILITY.md — Logging, Metrics, and Alerting
+
+**Project:** ${PROJECT_NAME:-Project}
+
+> Defines what the system must emit and what must be monitored.
+> Agents read this before implementing any logging, metrics, or health check logic.
+> Observability is not optional — it is a production requirement.
+
+---
+
+## General logging rules
+
+### What to log
+- Significant business events (user registered, order placed, model inference complete)
+- All errors with full context: error code, message, relevant IDs, stack trace (server-side only)
+- Performance measurements for critical paths: duration, resource consumed
+- Security events: login attempt, permission denied, token issued/revoked
+
+### What never to log
+- Passwords, tokens, API keys, or any credential — even partially
+- Full PII: names, emails, phone numbers, addresses in production logs
+
+## Application Legibility
+The system must be transparent to both humans and agents during runtime.
+- **Correlation IDs:** Every external request must generate or inherit a trace ID passed to all downstream services and logs.
+- **Health endpoints:** The system must expose a \`/_health\` or similar endpoint returning component status and version.
+- **Readiness/Liveness:** For orchestrated deployments (e.g., Kubernetes), expose distinct liveness and readiness probes.
+EOF
+}
+
+build_agent_config() {
+    local agent_name="${1:-Agent}"
+    cat <<EOF
+# ${agent_name}
+> Pointer file — canonical context lives in CONTEXT.md
+
+## Core Context
+> Context engineering principle: dynamic state before static context.
+> Read this section at the start of every session.
+
+1. \`scratchpads/own/SESSION.md\` — where did I leave off? Resolve any ESCALATE before proceeding
+2. \`TASKS.md\` — what is the current work for this milestone?
+3. \`WORKSTREAMS.md\` — which workstream am I in? What is my scope? Any phase gates to check?
+4. \`scratchpads/own/NOTES.md\` — what do I persistently know across sessions?
+5. \`CONTEXT.md\` — architecture and NFRs (skim if unchanged)
+
+## Where to look next
+> Progressive disclosure: fetch these documents only when relevant to your current task.
+
+- **Design & Architecture**: Check \`docs/\` for architectural diagrams, API contracts, or data models
+- **Execution Plans**: Check \`.plans/\` for active and historical ExecPlans (see PLANS.md for protocol)
+- **Domain Logic**: Check \`DOMAIN.md\` before features touching business rules
+- **Production Rules**: Check \`QUALITY.md\`, \`SECURITY.md\`, \`ENVIRONMENTS.md\`, and \`OBSERVABILITY.md\` before implementation
+
+## Execution Plans (PLANS.md)
+When writing complex features, refactoring significant components, or embarking on multi-hour tasks:
+- **Always use an ExecPlan** (as described in PLANS.md) from design to implementation
+- ExecPlans are living documents — update their Progress, Decision Log, and Discovery sections at every stopping point
+- Never proceed with a complex task without a concrete, approved ExecPlan in place
+
+## Doc Gardening Protocol
+Codebases drift. You are responsible for ensuring the context layer remains accurate.
+- Periodically check whether CONTEXT.md, DOMAIN.md, and the active skill's gotchas.md still match the codebase
+- If you notice documentation that is stale, inaccurate, or missing key decisions: autonomously update it
+- Stale context is a bug. Fix it just like you would fix broken code.
+EOF
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # NAVIGATION STATE
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -309,7 +500,9 @@ while [[ $current_step -lt $TOTAL_STEPS ]]; do
         "Intake")  read_line "Audience" "Public" "Who is this for?"; res_code=$? ;;
         "Agents")  
             agent_names=($(echo "$ALL_AGENTS_JSON" | python3 -c "import json,sys; print(' '.join([a['name'].replace(' ', '_') for a in json.load(sys.stdin)]))"))
-            read_choice "Select Agent" "${agent_names[@]}"; res_code=$? ;;
+            read_choice "Select Agent" "${agent_names[@]}"; res_code=$? 
+            SELECTED_AGENT="${agent_names[$CHOICE_IDX]}"
+            ;;
         "Skills")  
             skill_names=($(echo "$ALL_SKILLS_JSON" | python3 -c "import json,sys; print(' '.join([s['id'] for s in json.load(sys.stdin)]))"))
             read_choice "Check Skill" "${skill_names[@]}"; res_code=$? ;;
@@ -336,6 +529,17 @@ mkdir -p "${PROJECT_NAME:-scaffold}"
 echo "$(build_context_md "${PROJECT_NAME:-Project}")" > "${PROJECT_NAME:-scaffold}/CONTEXT.md"
 echo "$(build_tasks_md)" > "${PROJECT_NAME:-scaffold}/TASKS.md"
 echo "$(build_workstreams_md)" > "${PROJECT_NAME:-scaffold}/WORKSTREAMS.md"
+echo "$(build_plans_md)" > "${PROJECT_NAME:-scaffold}/PLANS.md"
+echo "$(build_quality_md)" > "${PROJECT_NAME:-scaffold}/QUALITY.md"
+echo "$(build_observability_md)" > "${PROJECT_NAME:-scaffold}/OBSERVABILITY.md"
+
+mkdir -p "${PROJECT_NAME:-scaffold}/.plans"
+echo "$(build_plan_template_md)" > "${PROJECT_NAME:-scaffold}/.plans/template.md"
+
+mkdir -p "${PROJECT_NAME:-scaffold}/agents"
+if [[ -n "${SELECTED_AGENT:-}" ]]; then
+    echo "$(build_agent_config "${SELECTED_AGENT}")" > "${PROJECT_NAME:-scaffold}/agents/${SELECTED_AGENT,,}.md"
+fi
 
 mkdir -p "${PROJECT_NAME:-scaffold}/workstreams/_coordinator"
 echo "# Core workstreams go here." > "${PROJECT_NAME:-scaffold}/workstreams/.keep"
@@ -352,6 +556,10 @@ EOF
 write_done "CONTEXT.md"
 write_done "TASKS.md"
 write_done "WORKSTREAMS.md"
+write_done "PLANS.md & .plans/"
+write_done "QUALITY.md"
+write_done "OBSERVABILITY.md"
+write_done "agents/ directory"
 write_done "workstreams/ directory"
 
 # ── Completion panel (Parity with PS1) ──────────────────────────────────────────
