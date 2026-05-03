@@ -42,4 +42,4 @@ These files drive the inference engine and the context scaffold generation. Inte
 
 - **Validation**: Mandatory: Run the following command after any edit:
   `pwsh -Command "$data = Get-Content agents.json | ConvertFrom-Json; if ($data.schema_version -ne '1.0' -or -not $data.agents) { throw 'Invalid schema' }"`
-- **Uniqueness**: Prohibition: Duplicate `id` values are strictly forbidden in any nested array.
+- **Uniqueness**: Requirement: Ensure all `id` values are unique within each nested array.
