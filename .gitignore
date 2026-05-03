@@ -1,0 +1,36 @@
+# Msingi — .gitignore
+
+# Generated scaffold output
+nasdh/
+test-scaffold-*/
+output-*/
+
+# Claude Code configuration
+.claude/
+
+# Secrets — never commit these
+.env
+.env.local
+.env.staging
+.env.production
+*.env
+secrets/
+*.pem
+*.key
+*.p12
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.swp
+
+# Temporary files
+nul
+*.tmp
+*.bak
