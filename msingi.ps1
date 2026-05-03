@@ -65,7 +65,7 @@ $ErrorActionPreference = "Stop"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-$VERSION    = "3.9.0"
+$VERSION    = "3.10.0"
 $SCRIPT_DIR = $PSScriptRoot
 $MAX_SKILLS = 12   # type-scoped pool means all matches are relevant
 

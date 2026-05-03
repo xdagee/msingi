@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](msingi.ps1)
 [![Platform: macOS/Linux](https://img.shields.io/badge/platform-macOS%20%2F%20Linux-green.svg)](msingi.sh)
-[![Version](https://img.shields.io/badge/version-3.9.0-orange.svg)](#)
+[![Version](https://img.shields.io/badge/version-3.10.0-orange.svg)](#)
 
 **Built in Accra. Designed for everywhere.**
 
@@ -215,6 +215,7 @@ Msingi builds on ideas from:
 
 | Version | Changes |
 |---|---|
+| **3.10.0** | **Harness Engineering Parity.** Integrated OpenAI Harness Engineering Tier 1-3 protocols (ExecPlans via `PLANS.md`, Entropy Control via `QUALITY.md`, Application Legibility via `OBSERVABILITY.md`, and Doc Gardening). Achieved full generation parity for these protocols across both the PowerShell (`msingi.ps1`) and Bash (`msingi.sh`) implementations without bloating the Bash footprint. |
 | **3.9.0** | **Claude Code Teardown Integration.** Derived from architectural teardowns of modern agent CLI models: Integrated `Agent Roles` taxonomy classifying agents as `coordinator`, `planner`, or `executor` to orchestrate swarms effectively. Implemented `Auto-Dream Memory Consolidation` skill dropping `dream.ps1`/`dream.sh` compaction templates to automate `SESSION.md` -> `CONTEXT.md` aggregation rules. |
 | **3.8.1** | **Production Stabilization & NN/G Agent Framework**. Added `desktop-windows` project type (MVVM WinUI 3 architecture, DLL hijacking threat model, MSIX quality gates). Integrated `antigravity` agent to the registry. Implemented NN/G's concrete AI agent definition into the core scaffold: all agents are now profiled via `capabilityToAct` and `selfDirection`, and the scaffold config enforces a strict **Agentic Loop Protocol** (Goal → Act → Evaluate → Adapt → Escalate/Verify). Unshipped `Qwen Code` and added new `agent-evaluation` tracking skill. Upgraded test suite to a comprehensive 50-test Python (`pytest`) validation harness ensuring strict schema and syntax parity. |
 | **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ✨═══════════════════════════════════════════════════════════════════════════✨
-#  Msingi v3.8.1 — Self-configuring multi-agent project scaffold tool.
+#  Msingi v3.10.0 — Self-configuring multi-agent project scaffold tool.
 #  macOS / Linux  ·  Bash 4.4+
 #  https://github.com/xdagee/msingi
 #
@@ -8,7 +8,7 @@
 # ✨═══════════════════════════════════════════════════════════════════════════✨
 set -uo pipefail
 
-VERSION="3.9.0"
+VERSION="3.10.0"
 MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""

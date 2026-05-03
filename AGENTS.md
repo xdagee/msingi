@@ -56,7 +56,7 @@ Update version strings in these locations:
 The script is one file with all logic in functions. Read in this order:
 
 1. **param() block** (line 52) — `-DryRun`, `-Update`, `-Check`, `-Path`
-2. **Constants + color engine** (line 66) — ANSI true-color, `$VERSION = "3.9.0"`
+2. **Constants + color engine** (line 66) — ANSI true-color, `$VERSION = "3.10.0"`
 3. **Terminal detection** (line 157) — `Test-Terminal`, `Validate-Data`, state management
 4. **TUI primitives** (line 222+) — `Write-Header`, `Write-TwoColumn`, `Write-Splash`, `Write-Box`, `Write-Section`, `Pad`
 5. **Input helpers** (line 495+) — `Read-Choice`, `Read-Checkboxes`, `Read-Line`, `Read-Confirm`
