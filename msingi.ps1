@@ -65,7 +65,7 @@ $ErrorActionPreference = "Stop"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-$VERSION    = "3.10.0"
+$VERSION    = "3.11.0"
 $SCRIPT_DIR = $PSScriptRoot
 $MAX_SKILLS = 12   # type-scoped pool means all matches are relevant
 
@@ -2079,8 +2079,8 @@ $m
 
 ## Context budget rules
 Context window is finite. Curate it — do not fill it indiscriminately. Target a
-60-80% utilization rate for optimal reasoning performance; exceeding 80% severely
-degrades your ability to follow complex logic.
+60-80% utilization rate for optimal reasoning performance.
+**Every token must be justified.**
 
 **What to always include (small, high-signal):**
 - SESSION.md handoff — the compressed state of the last session
@@ -2095,13 +2095,20 @@ degrades your ability to follow complex logic.
 
 **What to compress before including:**
 - If gotchas.md has grown beyond 20 entries: summarise the resolved ones into a single paragraph before reading — do not load all entries raw
-- If NOTES.md exceeds 300 lines: summarise the oldest 2/3 into a compact facts block, then append
+- If NOTES.md exceeds 300 lines: move old entries to archive tier — do not load archive by default
 
 **What never to load wholesale:**
 - The entire src/ directory
 - All skill specs at once
 - All memory/decisions/ entries
 - All gotchas from all skills
+
+## Control Tuning
+> Fragility-aware execution: match instruction freedom to task risk.
+
+- **High-Fragility Tasks** (e.g. auth, migrations, core schema): Follow instructions strictly. No deviation without human approval. Use rigid guardrails.
+- **Low-Fragility Tasks** (e.g. CSS, documentation, log messages): Use your judgment. Optimize for aesthetics and clarity. You have freedom to deviate if it improves the outcome.
+- **Unsure?** Treat as High-Fragility. Flag in SESSION.md.
 
 ## How to use skills
 Each skill is a **folder** in ``skills/<id>/``:
@@ -3660,28 +3667,28 @@ function Build-SkillSpec {
     param($Skill, $Project)
 
     $guidance = @{
-        auth      = "Security is non-negotiable. All inputs validated server-side. Tokens short-lived. Never store plain-text credentials. Every auth decision logged in memory/decisions/ as CRITICAL."
-        data      = "Data integrity is the contract. Validate before write. Handle null and empty states explicitly. Every query has a defined error path. No N+1 queries."
-        api       = "APIs are contracts. Version explicitly. Consistent error envelope. Validate all inputs before processing. Log all failures with context and request ID."
-        ui        = "Components are building blocks, not pages. Stateless where possible. Accept props/state, emit events. Document edge cases. Accessibility required — not optional."
-        ml        = "Pipelines, not magic. Every step reproducible. Log inputs, outputs, failure modes. Validate data shapes at every boundary. No silent failures."
-        infra     = "Invisible when working, catastrophic when not. Every config has a documented default. Fail loudly. Secrets never in source. Rotatable without downtime."
-        messaging = "Messages can be lost, duplicated, or delayed. Design for idempotency. Log send and delivery. Fallback paths for all failure modes."
-        testing   = "Tests are specifications. Write before implementation where possible. Cover happy path, error path, and edge cases. No flaky tests committed."
-        android   = "Android has unique constraints: main thread is sacred (no I/O), lifecycle is complex (handle all states), and the user can kill the app at any time. Design defensively."
+        auth      = "Security is non-negotiable. Explain the why: field injection is avoided because it breaks mockability in unit tests. JWTs are signed, not encrypted—PII exposure risk is high. Every auth decision must justify its token cost in the session log."
+        data      = "Data integrity is the contract. Explain the why: N+1 queries are blocked because they cause linear latency degradation as the dataset grows. Soft-deletes must be filtered in every join to prevent stale data leaks."
+        api       = "APIs are contracts. Explain the why: consistent error envelopes are required so client-side telemetry can reliably detect failures. 200-with-error is prohibited as it masks failures from load balancers."
+        ui        = "Components are building blocks. Explain the why: stateless components are preferred because they reduce the surface area for side-effect bugs. Accessibility is a production requirement for WCAG compliance."
+        ml        = "Pipelines, not magic. Explain the why: data leakage via pre-split shuffling is a critical failure mode that invalidates model evaluation. Every preprocessing step must be serialised with the model weights."
+        infra     = "Invisible when working. Explain the why: secrets in build args are avoided because they persist in image history layers. Fail loudly on config mismatch to prevent silent misconfiguration in production."
+        messaging = "Messages are unreliable. Explain the why: idempotency is mandatory because at-least-once delivery guarantees mean messages WILL be repeated. Log every handoff for traceability."
+        testing   = "Tests are specifications. Explain the why: unit tests must assert on interfaces, not implementations, to avoid brittle tests that break on refactors. Coverage is a quality gate, not a target."
+        android   = "Main thread is sacred. Explain the why: blocking the main thread for I/O triggers ANRs and destroys user experience. ViewModels must not hold Context references to prevent memory leaks."
     }
 
     # Invocation trigger — phrased so Claude scans it to decide when to use this skill
     $triggers = @{
-        auth      = "Use this skill when implementing login, logout, signup, token issuance, session management, OAuth flows, API key validation, or any access control logic."
-        data      = "Use this skill when writing database queries, migrations, ORM models, caching logic, file storage, or any code that reads or writes persistent data."
-        api       = "Use this skill when building REST endpoints, GraphQL resolvers, webhooks, rate limiting, request validation, or API versioning logic."
-        ui        = "Use this skill when building UI components, forms, design system elements, responsive layouts, or any user-facing interface code."
-        ml        = "Use this skill when implementing model inference, training pipelines, data preprocessing, feature engineering, or experiment tracking."
-        infra     = "Use this skill when configuring deployments, CI/CD pipelines, Docker/K8s resources, secrets management, or infrastructure-as-code."
-        messaging = "Use this skill when implementing queues, pub/sub, event buses, background jobs, or any async inter-service communication."
-        testing   = "Use this skill when writing unit tests, integration tests, e2e tests, test fixtures, mocks, or any test infrastructure."
-        android   = "Use this skill when building Android screens, ViewModels, Compose UI, Room queries, Hilt modules, or any Android-specific feature."
+        auth      = "MAKE SURE to use this skill whenever implementing login, logout, signup, tokens, or access control. Even if not explicitly asked, use it to review existing auth logic. Exclusions: Do NOT use for generic business logic or non-auth database schemas."
+        data      = "MAKE SURE to use this skill whenever writing database queries, migrations, or ORM models. Use it for any persistence-related task. Exclusions: Do NOT use for in-memory state management or UI data binding."
+        api       = "MAKE SURE to use this skill whenever building REST/GraphQL endpoints, webhooks, or request validation. Use it to ensure API contract integrity. Exclusions: Do NOT use for internal library functions or CLI-only logic."
+        ui        = "MAKE SURE to use this skill whenever building UI components, forms, or layouts. Use it to ensure responsiveness and accessibility. Exclusions: Do NOT use for backend business logic or data processing."
+        ml        = "MAKE SURE to use this skill whenever implementing model inference, pipelines, or preprocessing. Use it to prevent data leakage. Exclusions: Do NOT use for generic data analysis or non-ML script automation."
+        infra     = "MAKE SURE to use this skill whenever configuring deployments, CI/CD, or secrets. Use it to ensure production readiness. Exclusions: Do NOT use for application-level feature development."
+        messaging = "MAKE SURE to use this skill whenever implementing queues, events, or async communication. Use it to ensure idempotency. Exclusions: Do NOT use for synchronous request-response API calls."
+        testing   = "MAKE SURE to use this skill whenever writing tests, mocks, or test infra. Use it to ensure test reliability and coverage. Exclusions: Do NOT use for production code implementation."
+        android   = "MAKE SURE to use this skill whenever building Android screens, ViewModels, or Compose UI. Use it to handle lifecycle and main-thread safety. Exclusions: Do NOT use for platform-agnostic Kotlin logic."
     }
 
     $hint    = if ($guidance[$Skill.category])  { $guidance[$Skill.category]  } else { "Define constraints before implementing." }
@@ -3706,6 +3713,10 @@ function Build-SkillSpec {
     $qs = if ($quickStart[$Skill.category]) { $quickStart[$Skill.category] } else { "**Interface:** define before implementing. **#1 gotcha:** check ``gotchas.md`` before writing any code." }
 
     return @"
+---
+allowed-tools: [read_file, grep_search, list_dir, write_to_file, run_command]
+---
+
 # $($Skill.name)
 
 > **When to use:** $trigger
@@ -3738,13 +3749,13 @@ Start with ``●●●●●`` and ``●●●●○`` entries — they are the 
 |------|---------|
 | ``SKILL.md`` | This file — the contract |
 | ``gotchas.md`` | Failure patterns accumulated from real usage — read before implementing |
-| ``scripts/`` | Helper scripts Claude can run or compose (add as needed) |
-| ``assets/`` | Templates, reference data, sprint contracts (add as needed) |
-| ``references/`` | API docs, type definitions, detailed specs (add as needed) |
-| ``outputs/`` | Structured results from skill executions — compressed context for future sessions |
+| ``scripts/`` | Purpose-built scripts Claude can run (Utility Bundle pattern) |
+| ``assets/`` | Templates, reference data, and intermediate plans |
+| ``references/`` | API docs, type definitions, detailed specs |
+| ``outputs/`` | Structured results from skill executions — compressed context |
 
 **Progressive disclosure:** Read ``SKILL.md`` first. Fetch other files only when you need the detail.
-**Sprint contract:** Write your implementation plan to ``assets/sprint-contract.md`` before coding. This is the negotiated agreement between what the spec says and what you will actually build and test.
+**Plan-Validate-Execute:** Insert a verifiable plan (saved to ``assets/plan.json``) before any destructive or batch operation.
 
 ---
 
@@ -3782,14 +3793,29 @@ One sentence: what this skill does and why it exists in **$($Project.Name)**.
 
 ---
 
+## Examples
+<!-- Calibration for style, tone, and formatting (In-Skill Examples pattern). -->
+
+### Example 1
+**Input:**
+```
+[describe input]
+```
+**Output:**
+```
+[describe desired output]
+```
+
+---
+
 ## Constraints
 
 $hint
 
-### Hard limits
-- Never swallow errors silently — propagate or log with full context
-- Never trust input — validate at the boundary before any processing
-- Never block the main thread / event loop for I/O
+### Guardrails (Explain-the-Why)
+- **Do not swallow errors silently.** If errors are swallowed, we lose the visibility needed to debug production failures and the system may enter an inconsistent state.
+- **Validate all inputs at the boundary.** Unvalidated input is the primary source of injection attacks and malformed data in the persistence layer.
+- **Avoid blocking the main thread for I/O.** Blocking the event loop causes latency spikes that degrade user experience and throughput.
 
 ### Acceptance criteria
 - [ ] Happy path: *(define the expected successful flow)*
@@ -3800,48 +3826,45 @@ $hint
 
 ---
 
-## Sprint contract
+## Execution Checklist
+<!-- Linear workflow for multi-step procedures (Execution Checklist pattern). -->
+<!-- Copy these into your response and tick them off as you progress. -->
 
-> Before writing a single line of implementation, the agent proposes a contract and records it here.
-> This bridges the gap between the high-level spec above and what is actually testable.
-> Inspired by the Anthropic harness design pattern: generator and evaluator negotiate
-> what "done" looks like *before* any code is written, not after.
+- [ ] 1. Pre-execution verification (check state, dependencies)
+- [ ] 2. Core implementation step A
+- [ ] 3. Core implementation step B
+- [ ] 4. Post-execution validation (verify side effects, run tests)
 
-**Status:** [ ] Not started  [ ] Contract proposed  [ ] Contract confirmed  [ ] In progress  [ ] Done
+---
 
-### What will be built (proposed by implementing agent)
+## Sprint contract (Plan-Validate-Execute)
 
-*(Describe the specific implementation — not the spec, but your plan for satisfying it.
-Be concrete enough that a separate agent could verify it without asking you questions.)*
+> Before writing implementation code, the agent proposes a contract here.
+> This bridges the gap between the high-level spec and the testable reality.
+> For quality-critical tasks, use a **Self-Correcting Loop**: produce output,
+> run a validator, fix if needed, and only then declare completion.
+
+**Status:** [ ] Not started  [ ] Plan proposed  [ ] Plan confirmed  [ ] In progress  [ ] Done
+
+### What will be built
+*(Describe the specific implementation plan. If batch/destructive, reference assets/plan.json)*
 
 
-### How it will be verified (specific, testable)
-
-*(Map each acceptance criterion above to a concrete test that can be run against the implementation.
-"It works" is not a test. "GET /users/123 returns 200 with {id, name, email}" is a test.)*
+### How it will be verified
+*(Map each acceptance criterion above to a concrete, testable verification step)*
 
 | Criterion | Verification method | Expected outcome |
 |-----------|--------------------|-----------------:|
-| Happy path | *(specific request/action + expected response)* | |
-| Auth failure | *(specific request + expected 401/403 response)* | |
-| Validation failure | *(specific bad input + expected 422 response and error shape)* | |
-| Downstream failure | *(mock or kill dependency + verify graceful degradation)* | |
+| Happy path | *(specific action + expected response)* | |
+| Auth failure | *(unauthorised request + expected error)* | |
+| Validation failure | *(malformed input + expected error)* | |
+| Downstream failure | *(mock dependency failure + verify fallback)* | |
 | Performance | *(benchmark command + target metric)* | |
 
-### Out of scope for this sprint
-
-*(Be explicit. Anything not listed above is deferred. This prevents scope creep during QA.)*
+### Out of scope
+*(Explicitly define what will NOT be handled in this sprint)*
 
 -
-
-### Contract confirmed by
-
-*(Second agent or human reviewer signs off here before work begins.
-If working solo, take a 5-minute break and re-read this as a skeptical reviewer.)*
-
-**Reviewer:** *(agent ID or "human")*
-**Date:**
-**Notes:**
 
 ---
 

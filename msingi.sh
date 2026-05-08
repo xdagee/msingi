@@ -8,7 +8,7 @@
 # ✨═══════════════════════════════════════════════════════════════════════════✨
 set -uo pipefail
 
-VERSION="3.10.0"
+VERSION="3.11.0"
 MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""
@@ -442,17 +442,304 @@ build_agent_config() {
 - **Domain Logic**: Check \`DOMAIN.md\` before features touching business rules
 - **Production Rules**: Check \`QUALITY.md\`, \`SECURITY.md\`, \`ENVIRONMENTS.md\`, and \`OBSERVABILITY.md\` before implementation
 
-## Execution Plans (PLANS.md)
-When writing complex features, refactoring significant components, or embarking on multi-hour tasks:
-- **Always use an ExecPlan** (as described in PLANS.md) from design to implementation
-- ExecPlans are living documents — update their Progress, Decision Log, and Discovery sections at every stopping point
-- Never proceed with a complex task without a concrete, approved ExecPlan in place
+## Context budget rules
+Context window is finite. Curate it — do not fill it indiscriminately. Target a
+60-80% utilization rate for optimal reasoning performance.
+**Every token must be justified.**
+
+**What to always include (small, high-signal):**
+- SESSION.md handoff — the compressed state of the last session
+- The specific SKILL.md for the current task
+- The specific gotchas.md for the current task
+
+**What to include selectively (fetch on demand, not at session start):**
+- CONTEXT.md sections — only the architecture/NFR blocks relevant to today's task
+- src/ files — only the specific files being modified
+- memory/decisions/ — only when a current decision relates to a prior one
+
+**What to compress before including:**
+- If gotchas.md has grown beyond 20 entries: summarise the resolved ones into a single paragraph before reading — do not load all entries raw
+- If NOTES.md exceeds 300 lines: move old entries to archive tier — do not load archive by default
+
+## Control Tuning
+> Fragility-aware execution: match instruction freedom to task risk.
+
+- **High-Fragility Tasks** (e.g. auth, migrations, core schema): Follow instructions strictly. No deviation without human approval. Use rigid guardrails.
+- **Low-Fragility Tasks** (e.g. CSS, documentation, log messages): Use your judgment. Optimize for aesthetics and clarity. You have freedom to deviate if it improves the outcome.
+- **Unsure?** Treat as High-Fragility. Flag in SESSION.md.
 
 ## Doc Gardening Protocol
 Codebases drift. You are responsible for ensuring the context layer remains accurate.
 - Periodically check whether CONTEXT.md, DOMAIN.md, and the active skill's gotchas.md still match the codebase
 - If you notice documentation that is stale, inaccurate, or missing key decisions: autonomously update it
 - Stale context is a bug. Fix it just like you would fix broken code.
+EOF
+}
+
+build_skill_spec() {
+    local id="$1" name="$2" category="$3" trigger="$4" guidance="$5" qs="$6" short="$7" date=$(date +%Y-%m-%d)
+    cat <<EOF
+---
+allowed-tools: [read_file, grep_search, list_dir, write_to_file, run_command]
+---
+
+# ${name}
+
+> **When to use:** ${trigger}
+
+**ID:** ${id}  **Category:** ${category}  **Status:** UNIMPLEMENTED  **Created:** ${date}
+
+---
+
+## Quick start
+> Read this section first. Load the rest of the spec only when you need the detail.
+> This is the minimum context to begin implementing correctly.
+
+${qs}
+
+**Before writing any code:** read \`\`gotchas.md\`\` in this folder.
+Start with \`\`●●●●●\`\` and \`\`●●●●○\`\` entries — they are the most likely to apply.
+**After implementing:** write a compact result record to \`\`outputs/\`\`, update \`\`last_seen\`\` on any gotcha that triggered, and add new entries for anything unexpected.
+
+---
+
+> This is a contract, not an implementation plan.
+> Status lifecycle: UNIMPLEMENTED → IN PROGRESS → NEEDS-REVIEW → IMPLEMENTED
+> Any deviation from the Interface section must be logged in memory/decisions/.
+
+---
+
+## Skill folder contents
+
+| File | Purpose |
+|------|---------|
+| \`\`SKILL.md\`\` | This file — the contract |
+| \`\`gotchas.md\`\` | Failure patterns accumulated from real usage — read before implementing |
+| \`\`scripts/\`\` | Purpose-built scripts Claude can run (Utility Bundle pattern) |
+| \`\`assets/\`\` | Templates, reference data, and intermediate plans |
+| \`\`references/\`\` | API docs, type definitions, detailed specs |
+| \`\`outputs/\`\` | Structured results from skill executions — compressed context |
+
+**Progressive disclosure:** Read \`\`SKILL.md\`\` first. Fetch other files only when you need the detail.
+**Plan-Validate-Execute:** Insert a verifiable plan (saved to \`\`assets/plan.json\`\`) before any destructive or batch operation.
+
+---
+
+## Purpose
+
+One sentence: what this skill does and why it exists in **${PROJECT_NAME:-Project}**.
+
+*Project context: "${short}"*
+
+---
+
+## Interface
+
+### Inputs
+| Parameter | Type | Required | Validation | Description |
+|-----------|------|----------|------------|-------------|
+| — | — | — | — | Define before implementing |
+
+### Outputs
+
+**Success:**
+\`\`\`\`\`\`
+{ success: true, data: <define shape here> }
+\`\`\`\`\`\`
+
+**Error:**
+\`\`\`\`\`\`
+{ success: false, error: { code: string, message: string, details?: object } }
+\`\`\`\`\`\`
+
+### Side effects
+<!-- DB writes, cache invalidations, events emitted, external API calls. Be explicit. -->
+
+- *(none defined yet)*
+
+---
+
+## Examples
+<!-- Calibration for style, tone, and formatting (In-Skill Examples pattern). -->
+
+### Example 1
+**Input:**
+\`\`\`
+[describe input]
+\`\`\`
+**Output:**
+\`\`\`
+[describe desired output]
+\`\`\`
+
+---
+
+## Constraints
+
+${guidance}
+
+### Guardrails (Explain-the-Why)
+- **Do not swallow errors silently.** If errors are swallowed, we lose the visibility needed to debug production failures and the system may enter an inconsistent state.
+- **Validate all inputs at the boundary.** Unvalidated input is the primary source of injection attacks and malformed data in the persistence layer.
+- **Avoid blocking the main thread for I/O.** Blocking the event loop causes latency spikes that degrade user experience and throughput.
+
+### Acceptance criteria
+- [ ] Happy path: *(define the expected successful flow)*
+- [ ] Auth failure: *(define behaviour when caller is not authorised)*
+- [ ] Validation failure: *(define behaviour on bad input)*
+- [ ] Downstream failure: *(define behaviour when external dependency fails)*
+- [ ] Performance: *(define latency or throughput target)*
+
+---
+
+## Execution Checklist
+<!-- Linear workflow for multi-step procedures (Execution Checklist pattern). -->
+<!-- Copy these into your response and tick them off as you progress. -->
+
+- [ ] 1. Pre-execution verification (check state, dependencies)
+- [ ] 2. Core implementation step A
+- [ ] 3. Core implementation step B
+- [ ] 4. Post-execution validation (verify side effects, run tests)
+
+---
+
+## Sprint contract (Plan-Validate-Execute)
+
+> Before writing implementation code, the agent proposes a contract here.
+> This bridges the gap between the high-level spec and the testable reality.
+> For quality-critical tasks, use a **Self-Correcting Loop**: produce output,
+> run a validator, fix if needed, and only then declare completion.
+
+**Status:** [ ] Not started  [ ] Plan proposed  [ ] Plan confirmed  [ ] In progress  [ ] Done
+
+### What will be built
+*(Describe the specific implementation plan. If batch/destructive, reference assets/plan.json)*
+
+
+### How it will be verified
+*(Map each acceptance criterion above to a concrete, testable verification step)*
+
+| Criterion | Verification method | Expected outcome |
+|-----------|--------------------|-----------------:|
+| Happy path | *(specific action + expected response)* | |
+| Auth failure | *(unauthorised request + expected error)* | |
+| Validation failure | *(malformed input + expected error)* | |
+| Downstream failure | *(mock dependency failure + verify fallback)* | |
+| Performance | *(benchmark command + target metric)* | |
+
+### Out of scope
+*(Explicitly define what will NOT be handled in this sprint)*
+
+-
+
+**Read \`\`gotchas.md\`\` for the full failure log.** Quick reference below:
+
+- *(add the first gotcha the moment you hit a failure — do not wait)*
+- *(format: what went wrong → why → how to avoid it)*
+
+---
+
+## Dependencies
+
+| Dependency | Type | Version | Notes |
+|------------|------|---------|-------|
+| — | — | — | List before implementing |
+
+---
+
+## Security considerations
+<!-- Specific to this skill. Reference SECURITY.md for project-wide model. -->
+
+- *(none defined yet)*
+
+---
+
+## Implementation notes
+
+- Read \`\`CONTEXT.md\`\` architecture section before writing any code
+- Check \`\`memory/decisions/\`\` for prior decisions that affect this skill
+- Check \`\`gotchas.md\`\` for known failure patterns before starting
+- Write implementation to \`\`src/\`\` — this spec file stays unchanged
+- Log deviations from this spec in \`\`memory/decisions/\`\` with Severity: HIGH
+- If you need helper scripts: add them to \`\`scripts/\`\` and reference from here
+
+---
+
+## Verification checklist
+*(Agent completes before marking IMPLEMENTED)*
+
+- [ ] Interface matches spec — no undocumented parameters or return shapes
+- [ ] All acceptance criteria passing — tested, not assumed
+- [ ] Inputs validated at the boundary
+- [ ] All error paths handled and tested
+- [ ] Side effects documented and match spec
+- [ ] Security considerations addressed
+- [ ] QUALITY.md gates applicable to this skill all pass
+
+### Gotcha delta — required, not optional
+> ACE (arXiv 2510.04618): execution feedback updating context metadata is the
+> primary mechanism by which context self-improves. Skipping this step is the
+> main cause of knowledge loss across sessions. Do this before marking done.
+
+- [ ] Scanned trigger keywords in \`\`gotchas.md\`\` against what happened this session
+- [ ] For each gotcha whose trigger fired: raised confidence one level, updated \`\`last_seen\`\` to today
+- [ ] For each novel failure not in \`\`gotchas.md\`\`: added a new G-NNN entry at \`\`●●○○○ low\`\` confidence
+- [ ] For each gotcha that explicitly did NOT apply: lowered confidence one level, added a note
+- [ ] No gotchas triggered and no new failures — noted this below
+
+**Gotcha update log** *(fill or write "none triggered")*:
+
+---
+
+*Spec created: ${date} — Msingi v${VERSION}*
+EOF
+}
+
+build_skill_gotchas() {
+    local name="$1" category="$2" date=$(date +%Y-%m-%d)
+    cat <<EOF
+# gotchas.md — ${name} Institutional Knowledge
+
+**Project:** ${PROJECT_NAME:-Project}
+**Skill:** ${name}
+**Last updated:** ${date}
+
+> This is the accumulation of failures, edge cases, and "invisible" constraints
+> discovered during actual execution. It is the most valuable context for
+> avoiding wasted turns and regression.
+
+---
+
+## Confidence scoring model
+Each gotcha is a belief with evidence, not just a note.
+- ●●●●● critical — hit repeatedly, never contradicted, causes data loss or security issues
+- ●●●●○ high     — hit 3+ times across projects, well-understood cause
+- ●●●○○ medium   — seeded from known patterns, not yet confirmed in this project
+- ●●○○○ low      — single observation, needs more evidence
+
+---
+
+## Failure Log (Seed Entries)
+
+### G-001: PII Exposure in Auth Payloads
+- **Confidence:** ●●●●● critical
+- **Triggers:** jwt, oauth, session, profile
+- **Last seen:** 2026-05-01
+- **Status:** ACTIVE
+- **The Gotcha:** Developers often put emails or names in JWT payloads for convenience.
+- **The Failure:** JWTs are base64-encoded, NOT encrypted. Anyone with the token can read the PII.
+- **The Fix:** Only store a non-PII \`user_id\` or \`sub\` in the token. Fetch PII from the DB on the server-side only.
+
+### G-002: N+1 Query in List Endpoints
+- **Confidence:** ●●●●○ high
+- **Triggers:** database, list, index, orm
+- **Last seen:** 2026-04-15
+- **Status:** ACTIVE
+- **The Gotcha:** Fetching a list of entities and then fetching related entities in a loop.
+- **The Failure:** Causes O(N) database round-trips, leading to linear latency spikes.
+- **The Fix:** Use eager loading (JOINs) or batching (WHERE IN) to fetch relations in 1-2 queries.
+
+---
 EOF
 }
 
