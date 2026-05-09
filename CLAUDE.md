@@ -47,10 +47,10 @@ sudo ln -s "$(pwd)/msingi.sh" /usr/local/bin/msingi
 Update version strings in these locations:
 | File | Location | Format |
 |------|----------|--------|
-| `msingi.ps1` | `$VERSION` (~line 68) | `"X.Y.Z"` |
-| `msingi.sh` | `VERSION` (line 11) | `"X.Y.Z"` |
-| `install.ps1` | `Get-MsingiVersion` (line 65) | `"X.Y.Z"` |
-| `README.md` | Badge + version history | `vX.Y.Z` |
+| `msingi.ps1` | `$VERSION` (~line 68) | `"4.0.0"` |
+| `msingi.sh` | `VERSION` (line 11) | `"4.0.0"` |
+| `install.ps1` | `Get-MsingiVersion` (line 65) | `"4.0.0"` |
+| `README.md` | Badge + version history | `v4.0.0` |
 
 ## Architecture — msingi.ps1
 
@@ -111,7 +111,9 @@ Key invariants:
 - `CONTEXT.md` must contain project name, type, all agents, all skills, intake profile
 - `SECURITY.md` auth section fires only when `NeedsAuth=true`
 - `gotchas.md` must carry confidence metadata (`●●●●●`, `triggers:`, `last_seen:`)
-- `SESSION.md` must have Context cost log and Token leverage note sections
+- `SESSION.md` must have Context cost log and Token leverage note sections with Auto-Dream reflection
+- `CURRENT.md` must track project trajectory and velocity
+- `INBOX.md` must provide inter-agent signaling
 - `WORKSTREAMS.md` must have one workstream stub per agent with scope hints
 - `bootstrap-record.json` must be valid JSON with all intake fields
 
@@ -143,23 +145,19 @@ Key invariants:
 - The CRLF requirement — PS7 here-strings break on LF-only files
 - The `bootstrap-record.json` schema — downstream tools depend on it
 
-## Three Patterns from Harness Research (v3.8.0+)
+## Five Patterns from Frontier Research (v4.0.0+)
 
-Three patterns from Anthropic's harness design research (March 2026) are baked into the generated files:
+Five patterns from Perplexity and Claude Code research are baked into the generated files:
 
-**1. Sprint contract (SKILL.md):** Before implementing any skill, the agent proposes a contract
-mapping each acceptance criterion to a specific testable verification step. Saved to
-`skills/<id>/assets/sprint-contract.md`. A second agent or fresh session verifies against the
-contract after implementation.
+**1. Sprint contract (SKILL.md):** Before implementing any skill, the agent proposes a contract mapping each acceptance criterion to a specific testable verification step.
 
-**2. Context anxiety warning (agent configs):** Agents are explicitly told to recognise and resist
-context anxiety — the tendency to shortcut, summarise, or wrap up prematurely as context fills.
-Signs: summarising instead of implementing, skipping verification steps, writing stubs.
-Fix: stop, write SESSION.md with current state, set Status: Partial.
+**2. Context anxiety warning (agent configs):** Agents are explicitly told to recognise and resist context anxiety — the tendency to shortcut or summarize prematurely as context fills.
 
-**3. Evaluator pattern (DOMAIN.md):** Documents the generator-evaluator separation for each
-project. Includes grading criteria for the project, calibration instructions, and a note
-that consistent evaluator findings about stubs/shortcuts indicate generator context pressure.
+**3. Evaluator pattern (DOMAIN.md):** Documents the generator-evaluator separation for each project.
+
+**4. Kairos Trajectory (CURRENT.md):** Tracks project velocity and intent to enable seamless resumption across sessions.
+
+**5. Auto-Dream Reflection (SESSION.md):** Mandatory post-session consolidation of ephemeral logs into long-term knowledge.
 
 When editing any of these sections, preserve the research attribution and the specific
 behavioural instructions — they are the load-bearing content.

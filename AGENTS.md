@@ -45,9 +45,9 @@ python3 tests/test_suite.py   # All 27 tests must pass
 Update version strings in these locations:
 | File | Location | Format |
 |------|----------|--------|
-| `msingi.ps1` | `$VERSION` (~line 68) | `"X.Y.Z"` |
-| `msingi.sh` | `VERSION` (line 11) | `"X.Y.Z"` |
-| `README.md` | Badge + version history | `vX.Y.Z` |
+| `msingi.ps1` | `$VERSION` (~line 68) | `"4.0.0"` |
+| `msingi.sh` | `VERSION` (line 11) | `"4.0.0"` |
+| `README.md` | Badge + version history | `v4.0.0` |
 
 ## Architecture
 
@@ -56,7 +56,7 @@ Update version strings in these locations:
 The script is one file with all logic in functions. Read in this order:
 
 1. **param() block** (line 52) — `-DryRun`, `-Update`, `-Check`, `-Path`
-2. **Constants + color engine** (line 66) — ANSI true-color, `$VERSION = "3.10.0"`
+2. **Constants + color engine** (line 66) — ANSI true-color, `$VERSION = "4.0.0"`
 3. **Terminal detection** (line 157) — `Test-Terminal`, `Validate-Data`, state management
 4. **TUI primitives** (line 222+) — `Write-Header`, `Write-TwoColumn`, `Write-Splash`, `Write-Box`, `Write-Section`, `Pad`
 5. **Input helpers** (line 495+) — `Read-Choice`, `Read-Checkboxes`, `Read-Line`, `Read-Confirm`
@@ -106,7 +106,9 @@ Both scripts must produce identical content:
 - `CONTEXT.md` — project name, type, all agents, all skills, intake profile
 - `SECURITY.md` — auth section fires only when `NeedsAuth=true`
 - `gotchas.md` — confidence metadata (`●●●●●`, `triggers:`, `last_seen:`)
-- `SESSION.md` — Context cost log and Token leverage note sections
+- `SESSION.md` — Context cost log and Token leverage note sections with Auto-Dream reflection
+- `CURRENT.md` — [NEW] project trajectory and velocity tracking
+- `INBOX.md` — [NEW] inter-agent signaling hub
 - `WORKSTREAMS.md` — one workstream stub per agent with scope hints
 - `bootstrap-record.json` — valid JSON with all intake fields
 
@@ -131,13 +133,15 @@ Both scripts must produce identical content:
 - The `bootstrap-record.json` schema — downstream tools depend on it
 - The three patterns from harness research (see below)
 
-## Key Patterns from Research (v3.8.0+)
+## Key Patterns from Research (v4.0.0+)
 
-Three patterns from Anthropic's harness design research (March 2026) are baked into generated files:
+Five patterns from Perplexity and Claude Code research are baked into generated files:
 
 1. **Sprint contract (SKILL.md)**: Agent proposes a contract mapping acceptance criteria to testable verification steps before implementing
 2. **Context anxiety warning (agent configs)**: Agents told to recognize and resist premature shortcutting as context fills
 3. **Evaluator pattern (DOMAIN.md)**: Documents generator-evaluator separation with grading criteria
+4. **Kairos Trajectory (CURRENT.md)**: Tracks project velocity and intent to enable seamless resumption across sessions
+5. **Auto-Dream Reflection (SESSION.md)**: Mandatory post-session consolidation of ephemeral logs into long-term knowledge
 
 When editing any of these sections, preserve the research attribution and behavioral instructions.
 

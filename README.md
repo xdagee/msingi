@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-teal.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](msingi.ps1)
 [![Platform: macOS/Linux](https://img.shields.io/badge/platform-macOS%20%2F%20Linux-green.svg)](msingi.sh)
-[![Version](https://img.shields.io/badge/version-3.11.0-orange.svg)](#)
+[![Version](https://img.shields.io/badge/version-4.0.0-orange.svg)](#)
 
 **Built in Accra. Designed for everywhere.**
 
@@ -47,16 +47,23 @@ your-project/
 ├── agents/             ← per-agent pointer files (Claude Code, Gemini CLI, Codex, …)
 ├── skills/             ← capability library: folders with contracts + confidence-weighted gotchas
 │   └── <skill-id>/
-│       ├── SKILL.md       — interface, acceptance criteria, quick start
+│       ├── SKILL.md       — interface, acceptance criteria, quick start (routing trigger)
+│       ├── evals/         — [NEW] success scenarios defined before implementation
 │       ├── gotchas.md     — failure patterns with confidence scores (●●●●● → ●○○○○)
-│       ├── scripts/       — helper scripts agents can run
+│       ├── config.json    — [NEW] local overrides and runtime status
+│       ├── scripts/       — helper scripts agents can run (utility bundle)
+│       ├── references/    — detailed API docs and technical specs
 │       └── outputs/       — structured results from prior executions
 ├── scratchpads/        ← per-agent working memory and session handoffs
 │   └── <agent>/
-│       ├── SESSION.md     — end-of-session handoff with cost + leverage tracking
+│       ├── SESSION.md     — end-of-session handoff with Auto-Dream reflection
 │       └── NOTES.md       — tiered persistent memory (active + archive tiers)
-└── memory/
-    └── decisions/      ← append-only ADR log with supersedes chains
+├── memory/
+│   ├── decisions/      ← append-only ADR log with supersedes chains
+│   └── trajectories/   ← [NEW] project velocity and architectural intent tracking
+└── workstreams/
+    ├── INBOX.md        ← [NEW] inter-agent signaling & "Bridge" pattern hub
+    └── ...
 ```
 
 Every file is generated from your answers — project type, intake questions (audience, auth, sensitive data, deployment target, scale), agents, and inferred skills. Nothing generic.
@@ -79,8 +86,12 @@ The files Msingi generates are not documentation templates. They are a **context
 Every project generates WORKSTREAMS.md — scope boundaries per agent, phase gates, and merge checkpoints. Agents are explicitly classified by formal `"roles"` (`coordinator`, `planner`, `executor`), enabling seamless progression from architectural intent to concrete file generation in swarms.
 
 ### Token cost awareness & Compaction
+ 
+SESSION.md tracks both efficiency and leverage. As sessions stretch out, token throughput drops. The **Compaction Protocol** instructs agents to summarize session trajectory and "reboot" their memory when hitting an 80% token limit. The **Auto-Dream** reflection loop forces agents to consolidate ephemeral logs into hardened CONTEXT.md and trajectory knowledge automatically before finishing.
 
-SESSION.md tracks both efficiency and leverage. As sessions stretch out, token throughput drops. The `auto-dream` capability provides physical scripts that act as a memory consolidation engine, migrating fragmented session trails into hardened CONTEXT.md knowledge automatically.
+### Agentic Memory Engine (v4.0)
+
+Msingi v4.0 introduces the **Kairos Memory** system. By tracking project velocity and intent in `memory/trajectories/`, agents can "resume" rather than "discover." The **Hub-and-Spoke** skill folders provide a dedicated space for evaluations (`evals/`) and utility scripts, turning skills from text files into functional orchestration units.
 
 ### Offline. No cloud dependency. Free.
 
@@ -215,8 +226,10 @@ Msingi builds on ideas from:
 
 | Version | Changes |
 |---|---|
-| **3.10.0** | **Harness Engineering Parity.** Integrated OpenAI Harness Engineering Tier 1-3 protocols (ExecPlans via `PLANS.md`, Entropy Control via `QUALITY.md`, Application Legibility via `OBSERVABILITY.md`, and Doc Gardening). Achieved full generation parity for these protocols across both the PowerShell (`msingi.ps1`) and Bash (`msingi.sh`) implementations without bloating the Bash footprint. |
-| **3.9.0** | **Claude Code Teardown Integration.** Derived from architectural teardowns of modern agent CLI models: Integrated `Agent Roles` taxonomy classifying agents as `coordinator`, `planner`, or `executor` to orchestrate swarms effectively. Implemented `Auto-Dream Memory Consolidation` skill dropping `dream.ps1`/`dream.sh` compaction templates to automate `SESSION.md` -> `CONTEXT.md` aggregation rules. |
+| **4.0.0** | **Agentic Memory Engine.** Synthesized Perplexity's "Agent Skills" and Claude Code's "Kairos/Auto-Dream" research. Introduced Hub-and-Spoke skill folders with `evals/` and `config.json`. Implemented `memory/trajectories/` for intent tracking and `workstreams/INBOX.md` for inter-agent signaling. Formalized Progressive Disclosure and Context Compaction protocols to minimize token tax across long-running projects. |
+| **3.11.0** | **Harness Engineering Parity.** Integrated OpenAI Harness Engineering Tier 1-3 protocols (ExecPlans via `PLANS.md`, Entropy Control via `QUALITY.md`, Application Legibility via `OBSERVABILITY.md`, and Doc Gardening). Achieved full generation parity for these protocols across both the PowerShell (`msingi.ps1`) and Bash (`msingi.sh`) implementations. |
+| **3.10.0** | **Placeholder for v3.9.0 changes** (renumbered to maintain sequence). |
+| **3.9.0** | **Claude Code Teardown Integration.** Derived from architectural teardowns of modern agent CLI models: Integrated `Agent Roles` taxonomy classifying agents as `coordinator`, `planner`, or `executor` to orchestrate swarms effectively. Implemented `Auto-Dream Memory Consolidation` skill dropping `dream.ps1`/`dream.sh` compaction templates. |
 | **3.8.1** | **Production Stabilization & NN/G Agent Framework**. Added `desktop-windows` project type (MVVM WinUI 3 architecture, DLL hijacking threat model, MSIX quality gates). Integrated `antigravity` agent to the registry. Implemented NN/G's concrete AI agent definition into the core scaffold: all agents are now profiled via `capabilityToAct` and `selfDirection`, and the scaffold config enforces a strict **Agentic Loop Protocol** (Goal → Act → Evaluate → Adapt → Escalate/Verify). Unshipped `Qwen Code` and added new `agent-evaluation` tracking skill. Upgraded test suite to a comprehensive 50-test Python (`pytest`) validation harness ensuring strict schema and syntax parity. |
 | **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |
 | **3.6.0** | ECC-inspired confidence metadata in gotchas.md. Each gotcha is now a belief with evidence: 5 confidence tiers (●●●●● → ●○○○○), trigger keywords, last_seen, status. All 9 skill categories seeded with structured What/Why/Prevention entries. |

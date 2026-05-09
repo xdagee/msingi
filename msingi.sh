@@ -8,7 +8,7 @@
 # ✨═══════════════════════════════════════════════════════════════════════════✨
 set -uo pipefail
 
-VERSION="3.11.0"
+VERSION="4.0.0"
 MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""
@@ -417,6 +417,14 @@ The system must be transparent to both humans and agents during runtime.
 - **Readiness/Liveness:** For orchestrated deployments (e.g., Kubernetes), expose distinct liveness and readiness probes.
 EOF
 }
+build_agent_config() {
+    local name="$1" date=$(date +%Y-%m-%d)
+    cat <<EOF
+# ${name^^}
+> Pointer file — canonical context lives in CONTEXT.md
+
+## Role
+Production engineer on **\${PROJECT_NAME:-Project}**.
 
 ## How to use skills (Progressive Disclosure)
 Context is a tax. Avoid "token tax" by using tiered loading:
@@ -436,17 +444,68 @@ Each skill is a **folder** in \`\`skills/<id>/\`\`:
 
 When starting a task: identify the right skill, read its SKILL.md and EVAL.md, then read gotchas.md — starting with the highest-confidence entries (●●●●● and ●●●●○). Update gotchas.md and config.json before marking a skill task done.
 
+## Compaction Protocol
+When approaching context limits (80% utilization):
+1. **Summarize**: Distill the current session's trajectory into a single Handoff.
+2. **Reboot**: Use the handoff to clear history or prune non-essential files.
+3. **Persist**: Promote architectural findings to \`memory/decisions/\` before compacting.
+
 ## Retrieval rules
 - Read \`\`src/\`\` files only when directly required — never load entire directories
 - Use file listing or grep to understand structure before opening files
 - Pull \`\`memory/decisions/\`\` only when a current decision relates to a prior one
 - Never preload speculatively — retrieve just-in-time
+- Read \`\`workstreams/INBOX.md\`\` at session start for inter-agent signals.
 
 ## Doc Gardening Protocol
 Codebases drift. You are responsible for ensuring the context layer remains accurate.
 - Periodically check whether CONTEXT.md, DOMAIN.md, and the active skill's gotchas.md still match the codebase
 - If you notice documentation that is stale, inaccurate, or missing key decisions: autonomously update it
 - Stale context is a bug. Fix it just like you would fix broken code.
+EOF
+}
+
+build_trajectory_md() {
+    local name="$1" date=$(date +%Y-%m-%d)
+    cat <<EOF
+# CURRENT.md — Project Trajectory & Velocity
+
+> **Kairos Memory (Claude Code):** This file tracks the "why" and the current momentum.
+> Use this to understand the big picture trajectory before diving into task-level details.
+
+## Current Milestone: [Set during bootstrap]
+**Velocity:** NORMAL | ACCELERATED | BLOCKED
+**Confidence:** ●●●●○
+
+## Active Trajectory
+- 
+
+## Open Blockers & Architectural Debt
+- 
+
+## The "Next Big Why"
+- 
+
+---
+*Last Consolidated: ${date} — Msingi v${VERSION}*
+EOF
+}
+
+build_inbox_md() {
+    cat <<EOF
+# INBOX.md — Inter-Agent Signaling & "Bridge"
+
+> Use this file to leave signals, interrupts, or handoff notes for other agents.
+> This prevents polluting TASKS.md with ephemeral coordination noise.
+
+## 📨 Incoming Signals
+- *(none)*
+
+## 📡 Outgoing Interrupts
+- *(none)*
+
+---
+*Protocol: Read INBOX.md at session start. Clear signals once acknowledged.*
 EOF
 }
 
@@ -837,6 +896,10 @@ if [[ -n "${SELECTED_AGENT:-}" ]]; then
 fi
 
 mkdir -p "${PROJECT_NAME:-scaffold}/workstreams/_coordinator"
+mkdir -p "${PROJECT_NAME:-scaffold}/memory/trajectories"
+echo "$(build_trajectory_md "${PROJECT_NAME:-Project}")" > "${PROJECT_NAME:-scaffold}/memory/trajectories/CURRENT.md"
+echo "$(build_inbox_md)" > "${PROJECT_NAME:-scaffold}/workstreams/INBOX.md"
+
 echo "# Core workstreams go here." > "${PROJECT_NAME:-scaffold}/workstreams/.keep"
 cat <<EOF > "${PROJECT_NAME:-scaffold}/workstreams/_coordinator/DISPATCH.md"
 # DISPATCH.md — Swarm Workstream Registry

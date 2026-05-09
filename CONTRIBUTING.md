@@ -9,7 +9,7 @@ Thank you for contributing. Msingi exists to make AI agent development accessibl
 Every contribution should make Msingi more useful for more people — especially developers who are not working on high-bandwidth connections with unlimited API budgets.
 
 **We will always accept:**
-- New project types (beyond the current 6) with accurate skill pools
+- New project types (beyond the current 7) with accurate skill pools
 - New agent registrations in `agents.json` with correct file, scratchpad, and docs fields
 - New skills in `skills.json` with accurate trigger patterns and correct type scoping
 - Gotcha seeds for underrepresented skill categories, in the confidence-weighted format
@@ -33,6 +33,7 @@ Skills live in `skills.json`. Each entry must have:
 {
   "id": "kebab-case-id",
   "name": "Human Readable Name",
+  "description": "Load when [intent-based trigger]...",
   "category": "auth|data|api|ui|ml|infra|messaging|testing|android",
   "types": ["web-app", "api-service", "..."],
   "baseline": false,

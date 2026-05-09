@@ -65,7 +65,7 @@ $ErrorActionPreference = "Stop"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-$VERSION    = "3.11.0"
+$VERSION    = "4.0.0"
 $SCRIPT_DIR = $PSScriptRoot
 $MAX_SKILLS = 12   # type-scoped pool means all matches are relevant
 
@@ -2128,6 +2128,12 @@ Each skill is a **folder** in ``skills/<id>/``:
 
 When starting a task: identify the right skill, read its SKILL.md and EVAL.md, then read gotchas.md — starting with the highest-confidence entries (``●●●●●`` and ``●●●●○``). Update gotchas.md and config.json before marking a skill task done.
 
+## Compaction Protocol
+When approaching context limits (80% utilization):
+1. **Summarize**: Distill the current session's trajectory into a single Handoff.
+2. **Reboot**: Use the handoff to clear history or prune non-essential files.
+3. **Persist**: Promote architectural findings to ``memory/decisions/`` before compacting.
+
 ## Retrieval rules
 - Read ``src/`` files only when directly required — never load entire directories
 - Use file listing or grep to understand structure before opening files
@@ -2135,6 +2141,7 @@ When starting a task: identify the right skill, read its SKILL.md and EVAL.md, t
 - Never preload speculatively — retrieve just-in-time
 - Use scripts in ``skills/<id>/scripts/`` instead of rebuilding boilerplate
 - Check ``skills/<id>/outputs/`` for prior results before re-running expensive operations
+- Read ``workstreams/INBOX.md`` at session start for inter-agent signals.
 
 ## Production rules
 - Every feature must pass all gates in ``QUALITY.md`` before being marked complete
@@ -2391,6 +2398,54 @@ $($Project.Milestone)
 
 ---
 *Canonical context. All agent files and decisions derive from this. Update here first.*
+"@
+}
+
+function Build-TrajectoryMd {
+    param($Project)
+    $date = Get-Date-Short
+    return @"
+# CURRENT.md — Project Trajectory & Velocity
+
+> **Kairos Memory (Claude Code):** This file tracks the "why" and the current momentum.
+> Use this to understand the big picture trajectory before diving into task-level details.
+
+## Current Milestone: [Set during bootstrap]
+**Velocity:** NORMAL | ACCELERATED | BLOCKED
+**Confidence:** ●●●●○
+
+## Active Trajectory
+<!-- Describe the current high-level focus. Why are we building this now? -->
+- 
+
+## Open Blockers & Architectural Debt
+<!-- What is slowing us down? What decisions are we punting? -->
+- 
+
+## The "Next Big Why"
+<!-- What is the immediate goal after the current milestone? -->
+- 
+
+---
+*Last Consolidated: $date — Msingi v$VERSION*
+"@
+}
+
+function Build-InboxMd {
+    return @"
+# INBOX.md — Inter-Agent Signaling & "Bridge"
+
+> Use this file to leave signals, interrupts, or handoff notes for other agents.
+> This prevents polluting TASKS.md with ephemeral coordination noise.
+
+## 📨 Incoming Signals
+- *(none)*
+
+## 📡 Outgoing Interrupts
+- *(none)*
+
+---
+*Protocol: Read INBOX.md at session start. Clear signals once acknowledged.*
 "@
 }
 
@@ -3377,12 +3432,14 @@ function Build-EnvironmentsMd {
 ## Required environment variables
 
 Document all required variables here as the project grows.
-Format: ``VARIABLE_NAME` — purpose — required in which environments.
+Format: \`\`VARIABLE_NAME\` — purpose — required in which environments.
 
 | Variable | Purpose | Dev | Staging | Production |
 |----------|---------|-----|---------|------------|
-| ``APP_ENV` | Environment name | local | staging | production |
-| ``DB_URL` | Database connection string | ✓ | ✓ | ✓ |
+| \`\`APP_ENV\` | Environment name | local | staging | production |
+| \`\`DB_URL\` | Database connection string | ✓ | ✓ | ✓ |
+
+---
 | ``SECRET_KEY` | Application secret / JWT signing | ✓ | ✓ | ✓ |
 | *(add as project grows)* | | | | |
 
@@ -3566,6 +3623,19 @@ function Build-SessionMd {
 
 ### Next action
 *(One sentence. The single most important thing the next session does first.)*
+
+---
+
+### Auto-Dream / Consolidation
+> Post-session reflection is the primary driver of project growth.
+> Do not close the session without distilling signal from the noise.
+
+1. **Summarize**: What did we actually achieve? (1-2 sentences)
+2. **Gotcha Delta**: What new failures did we hit? Update \`gotchas.md\`.
+3. **Trajectory**: Does this session change our direction? Update \`memory/trajectories/CURRENT.md\`.
+4. **Handoff**: What is the single most important bit of state for the next agent?
+
+**Status:** [ ] Consolidated  [ ] Memory Updated  [ ] Blockers Flagged
 
 
 ### Context drift check
@@ -6695,6 +6765,7 @@ if ($currentStep -ge $totalSteps) {
         (Join-Path $root "agents"),
         (Join-Path $root "skills"),
         (Join-Path $root "memory\decisions"),
+        (Join-Path $root "memory\trajectories"),
         (Join-Path $root "workstreams"),
         (Join-Path $root "workstreams\_coordinator"),
         (Join-Path $root "src"),
@@ -6752,6 +6823,10 @@ if ($currentStep -ge $totalSteps) {
 
     # Gitignore
     Emit ".gitignore"      (Build-Gitignore      -Project $project) $root
+
+    # Memory & Signals
+    Emit "memory\trajectories\CURRENT.md" (Build-TrajectoryMd -Project $project) $root
+    Emit "workstreams\INBOX.md"           (Build-InboxMd) $root
 
     # Workstreams Registry
     Emit "workstreams\.keep" "# Core workstreams go here.`n" $root

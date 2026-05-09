@@ -16,7 +16,7 @@
     Requires PowerShell 7.0 or later.
     Preserves CRLF line endings and single-column formatting.
 
-    Version: 3.8.0
+    Version: 4.0.0
 #>
 
 [CmdletBinding()]
@@ -62,7 +62,7 @@ function Write-Step {
 
 # ── Core Logic ────────────────────────────────────────────────────────────────
 
-function Get-MsingiVersion { "3.8.0" }
+function Get-MsingiVersion { "4.0.0" }
 
 function Show-Banner {
     Write-Host ""
