@@ -33,10 +33,8 @@ $path = "C:/Projects/msingi/data"
 
 ## Line Endings & Encoding
 
-### CRLF Requirement
-- **Requirement**: Ensure CRLF line endings for `msingi.ps1` before committing.
-- **Mandatory**: Use CRLF for all scripts to ensure correct here-string parsing.
-- **Correction**: Run `python3 scripts/fix_line_endings.py` after non-Windows edits.
+> CRLF rules and here-string invariants are defined in [`coding-standards.md`](coding-standards.md).
+> This section covers Windows-specific detection only.
 
 ### Detection
 
@@ -140,23 +138,8 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name
 
 | Issue | Solution |
 |-------|----------|
-| Here-strings broken | Ensure CRLF line endings |
+| Here-strings broken | Ensure CRLF line endings (see `coding-standards.md`) |
 | Command not found | Use full path or `$env:PATH` |
 | Permission denied | Run PowerShell as Administrator |
 | Unicode issues | Use UTF-8 with BOM encoding |
 | Path too long | Enable long paths or use `\\?\` prefix |
-
-## Terminal & Shell Constraints
-
-### Capabilities
-- **TUI Width**: Assume a minimum of 80 characters; use `Write-Header` for responsive padding.
-- **Modern Host**: Target Windows Terminal (wt.exe) or modern conhost for ANSI color support.
-
-### Environment Detection
-- **CI Mode**: Detect `env:CI` or `env:TERM='dumb'` and disable interactive TUI features automatically.
-
-## Verification & Deployment
-
-### Strict Testing
-- **Execution Policy**: Ensure `RemoteSigned` or higher for the current user.
-- **Validation**: Execute `python3 tests/test_suite.py` on a native Windows environment before tagging a release.

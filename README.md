@@ -17,228 +17,48 @@
 
 ---
 
-## The problem
+## The Problem
+The real cost of AI coding tools is the tokens burned on unstructured exploration. Every cold session costs tokens that should go to creation. 
 
-The real cost of AI coding tools isn't the subscription — it's the tokens you burn on unstructured sessions.
+**Msingi generates the foundation in 60 seconds.**
 
-Every session that starts cold, rediscovers the architecture, re-reads files already read, and remakes decisions already made is a session where your budget goes to exploration instead of creation. Multiply that across a team, across months, across every developer who can't afford to burn tokens on context re-establishment, and the cost is not just financial — it is a barrier.
-
-AI agents are powerful. But without a foundation to work from, they repeat the same exploration every time they start.
-
-**Msingi generates that foundation in 60 seconds.**
-
----
-
-## What it generates
-
-Run `msingi` once at the start of a project. It asks 15 questions and writes the entire context engineering infrastructure your agents need:
-
-```
-your-project/
-├── CONTEXT.md          ← canonical truth: architecture, NFRs, stack
-├── TASKS.md            ← active milestone and backlog
-├── DOMAIN.md           ← business domain: rules, concepts, what good looks like
-├── WORKSTREAMS.md      ← parallel agent coordination: scope, phases, merge checkpoints
-├── DISCOVERY.md        ← exploration log: variants tried, hypotheses, experiments
-├── SECURITY.md         ← threat model shaped by your project type and intake answers
-├── QUALITY.md          ← production quality gates agents self-verify before marking done
-├── ENVIRONMENTS.md     ← dev/staging/production strategy
-├── OBSERVABILITY.md    ← logging, metrics, alerting specification
-├── agents/             ← per-agent pointer files (Claude Code, Gemini CLI, Codex, …)
-├── skills/             ← capability library: folders with contracts + confidence-weighted gotchas
-│   └── <skill-id>/
-│       ├── SKILL.md       — interface, acceptance criteria, quick start (routing trigger)
-│       ├── evals/         — [NEW] success scenarios defined before implementation
-│       ├── gotchas.md     — failure patterns with confidence scores (●●●●● → ●○○○○)
-│       ├── config.json    — [NEW] local overrides and runtime status
-│       ├── scripts/       — helper scripts agents can run (utility bundle)
-│       ├── references/    — detailed API docs and technical specs
-│       └── outputs/       — structured results from prior executions
-├── scratchpads/        ← per-agent working memory and session handoffs
-│   └── <agent>/
-│       ├── SESSION.md     — end-of-session handoff with Auto-Dream reflection
-│       └── NOTES.md       — tiered persistent memory (active + archive tiers)
-├── memory/
-│   ├── decisions/      ← append-only ADR log with supersedes chains
-│   └── trajectories/   ← [NEW] project velocity and architectural intent tracking
-└── workstreams/
-    ├── INBOX.md        ← [NEW] inter-agent signaling & "Bridge" pattern hub
-    └── ...
-```
-
-Every file is generated from your answers — project type, intake questions (audience, auth, sensitive data, deployment target, scale), agents, and inferred skills. Nothing generic.
-
----
-
-## Why this is different
-
-### Context engineering, not just templates
-
-The files Msingi generates are not documentation templates. They are a **context engineering system** — designed around how AI agents actually consume information.
-
-- **Recency-first session start:** agents read SESSION.md before CONTEXT.md — dynamic state before static context
-- **Context budget rules:** what to always include, what to fetch selectively, what to compress, what never to load wholesale
-- **Skills as beliefs:** gotchas carry confidence scores (●●●●● critical → ●○○○○ weak), trigger keywords, and update instructions — adapted from the ECC instincts architecture
-- **Tiered memory:** NOTES.md targets under 300 lines; older observations compress to NOTES-archive.md — session-start load cost stays flat regardless of project age
-
-### Parallel agent coordination & Roles
-
-Every project generates WORKSTREAMS.md — scope boundaries per agent, phase gates, and merge checkpoints. Agents are explicitly classified by formal `"roles"` (`coordinator`, `planner`, `executor`), enabling seamless progression from architectural intent to concrete file generation in swarms.
-
-### Token cost awareness & Compaction
- 
-SESSION.md tracks both efficiency and leverage. As sessions stretch out, token throughput drops. The **Compaction Protocol** instructs agents to summarize session trajectory and "reboot" their memory when hitting an 80% token limit. The **Auto-Dream** reflection loop forces agents to consolidate ephemeral logs into hardened CONTEXT.md and trajectory knowledge automatically before finishing.
-
-### Agentic Memory Engine (v4.0)
-
-Msingi v4.0 introduces the **Kairos Memory** system. By tracking project velocity and intent in `memory/trajectories/`, agents can "resume" rather than "discover." The **Hub-and-Spoke** skill folders provide a dedicated space for evaluations (`evals/`) and utility scripts, turning skills from text files into functional orchestration units.
-
-### Offline. No cloud dependency. Free.
-
-Msingi generates files and exits. No API calls. No accounts. No runtime. Works on a laptop in Accra on a bad connection as well as it does anywhere else.
-
----
+## Quick Links
+- [**The Manifesto**](docs/manifesto.md) — Why context engineering matters.
+- [**The Scaffold Spec**](docs/scaffold-spec.md) — What files are generated and why.
+- [**Supported Agents**](docs/agents-list.md) — Role taxonomy and configuration guide.
+- [**Architecture**](docs/architecture.md) — Dual-script structure and reading order.
+- [**Roadmap & History**](docs/changelog.md) — Where we're going and where we've been.
 
 ## Installation
 
 ### Windows (PowerShell 7)
-
 ```powershell
 git clone https://github.com/xdagee/msingi
 cd msingi
 .\install.ps1
-# New terminal window:
 bootstrap
 ```
 
 ### macOS / Linux (Bash 4+)
-
 ```bash
 git clone https://github.com/xdagee/msingi
 cd msingi
 chmod +x msingi.sh
-./msingi.sh
-```
-
-Or add to your PATH for global use:
-
-```bash
 sudo ln -s "$(pwd)/msingi.sh" /usr/local/bin/msingi
 msingi
 ```
 
-**Requirements:** Bash 4+ (macOS ships Bash 3 — `brew install bash`), or PowerShell 7+ on Windows.
-
----
-
 ## Usage
-
 ```bash
 msingi              # guided mode — 7 screens, ~60 seconds
-msingi --dry-run    # preview every file without writing anything
+msingi --dry-run    # preview every file without writing
 msingi --help
 ```
 
-The tool asks:
-
-1. **Mode** — new project or existing codebase overlay
-2. **Type** — web app, API service, ML/AI, CLI tool, full-stack, Android, desktop-windows (up to 2 for hybrid)
-3. **Details** — name, description, stack, milestone, target directory
-4. **Smart intake** — audience, authentication, sensitive data, deployment target, scale
-5. **Agents** — which of the 7 registered agents (Claude Code, Gemini CLI, Codex, Opencode, Aider, Deep Agents, Antigravity)
-6. **Skills** — inferred from your description and stack (67 skills, type-scoped, baseline-guaranteed)
-7. **Review + confirm** — full summary before anything is written
-
 ---
 
-## Supported agents
-
-| Agent | Config file | Docs |
-|---|---|---|
-| Claude Code | `agents/CLAUDE.md` | [code.claude.com](https://code.claude.com/docs/en/overview) |
-| Gemini CLI | `agents/GEMINI.md` | [geminicli.com](https://geminicli.com/docs/) |
-| Codex | `agents/AGENTS.md` | [developers.openai.com](https://developers.openai.com/codex/) |
-| Opencode | `agents/opencode.json` | [opencode.ai](https://opencode.ai/docs) |
-| Qwen Code | `agents/QWEN.md` | [qwenlm.github.io](https://qwenlm.github.io/qwen-code-docs/en/users/overview/) |
-| Antigravity | `agents/ANTIGRAVITY.md` | [antigravity.google](https://antigravity.google/docs/get-started) |
-
----
-
-## Ethos
-
-*Msingi exists because the real cost of AI coding tools isn't the subscription — it's the tokens you burn on unstructured sessions.*
-
-*Every session that starts cold, rediscovers the architecture, re-reads files already read, and remakes decisions already made is a session where your budget goes to exploration instead of creation.*
-
-*Msingi generates the context engineering infrastructure that makes every agent session start from knowledge. The canonical context. The skill contracts. The gotchas, weighted by confidence. The workstream boundaries. The domain understanding. The session handoff. The memory.*
-
-*It takes 60 seconds to run. It works offline. It produces no cloud dependency. It costs nothing.*
-
-*The constraints that shaped it — bandwidth limits, Windows-native tooling, local LLM backends, cost-aware token management — are not limitations. They are design decisions that make it work for everyone, not just people with unlimited API budgets.*
-
-*Built in Accra. Designed for everywhere.*
-
----
-
-## Roadmap
-
-- [x] PowerShell 7 (Windows) — v3.6.0
-- [x] Bash (macOS / Linux) — v3.6.0
-- [ ] Go rewrite with Bubble Tea TUI — v1.0.0 (in progress)
-  - Single binary, zero runtime dependencies
-  - Cross-platform via goreleaser
-  - Full interactive TUI with live sidebar and resize support
-
----
-
-## Contributing
-
-Msingi is open to contributions that make it more useful for more developers — especially those building in constrained environments.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-**What we welcome:**
-- New project types (beyond the current 7)
-- New agent registrations in `agents.json`
-- New skills in `skills.json` with accurate trigger patterns
-- Gotcha seeds for underrepresented categories
-- Translations of the manifesto README
-
-**What we won't accept:**
-- Cloud dependencies or API calls in the generator
-- Features that only work on high-bandwidth connections
-- Anything that requires a paid account to use
-
----
-
-## Acknowledgements
-
-Msingi builds on ideas from:
-- [everything-claude-code](https://github.com/affaan-m/everything-claude-code) — instincts architecture and confidence scoring model
-- Karpathy's context engineering framing — parallel workstreams, token leverage
-- Andrej Karpathy's principle: *"context engineering is the delicate art and science of filling the context window with just the right information for the next step"*
-- Debois's 4 Patterns of AI-Native Development — delivery → discovery shift
-- Ubuntu philosophy — *I am because we are*
-
----
-
-## Version history
-
-| Version | Changes |
-|---|---|
-| **4.0.0** | **Agentic Memory Engine.** Synthesized Perplexity's "Agent Skills" and Claude Code's "Kairos/Auto-Dream" research. Introduced Hub-and-Spoke skill folders with `evals/` and `config.json`. Implemented `memory/trajectories/` for intent tracking and `workstreams/INBOX.md` for inter-agent signaling. Formalized Progressive Disclosure and Context Compaction protocols to minimize token tax across long-running projects. |
-| **3.11.0** | **Harness Engineering Parity.** Integrated OpenAI Harness Engineering Tier 1-3 protocols (ExecPlans via `PLANS.md`, Entropy Control via `QUALITY.md`, Application Legibility via `OBSERVABILITY.md`, and Doc Gardening). Achieved full generation parity for these protocols across both the PowerShell (`msingi.ps1`) and Bash (`msingi.sh`) implementations. |
-| **3.10.0** | **Placeholder for v3.9.0 changes** (renumbered to maintain sequence). |
-| **3.9.0** | **Claude Code Teardown Integration.** Derived from architectural teardowns of modern agent CLI models: Integrated `Agent Roles` taxonomy classifying agents as `coordinator`, `planner`, or `executor` to orchestrate swarms effectively. Implemented `Auto-Dream Memory Consolidation` skill dropping `dream.ps1`/`dream.sh` compaction templates. |
-| **3.8.1** | **Production Stabilization & NN/G Agent Framework**. Added `desktop-windows` project type (MVVM WinUI 3 architecture, DLL hijacking threat model, MSIX quality gates). Integrated `antigravity` agent to the registry. Implemented NN/G's concrete AI agent definition into the core scaffold: all agents are now profiled via `capabilityToAct` and `selfDirection`, and the scaffold config enforces a strict **Agentic Loop Protocol** (Goal → Act → Evaluate → Adapt → Escalate/Verify). Unshipped `Qwen Code` and added new `agent-evaluation` tracking skill. Upgraded test suite to a comprehensive 50-test Python (`pytest`) validation harness ensuring strict schema and syntax parity. |
-| **3.7.0** | **Renamed Bootstrap Agent → Msingi** (Swahili: "foundation"). Independent terminal launch: `msingi` now detects when running in an existing shell and spawns a fresh Windows Terminal tab (wt.exe) or conhost window at clean dimensions — the TUI never wraps in your current session. Animated splash screen with typewriter tagline and "Built in Accra. Designed for everywhere." Upgraded to two-column layout (`Write-TwoColumn`) — sidebar and content rendered simultaneously via cursor positioning with a live project summary panel that updates as you fill in details. Completion panel upgraded to full teal `╔═╗` box with brand border, subtitle row, detail lines, and ethos tagline. `install.ps1` upgraded to register a `msingi` launcher function + `bootstrap` alias. Version: 3.6.0→3.7.0 · 5,009 lines · 27 tests passing. |
-| **3.6.0** | ECC-inspired confidence metadata in gotchas.md. Each gotcha is now a belief with evidence: 5 confidence tiers (●●●●● → ●○○○○), trigger keywords, last_seen, status. All 9 skill categories seeded with structured What/Why/Prevention entries. |
-| **3.5.0** | WORKSTREAMS.md and DOMAIN.md added. Parallel agent coordination with scope ownership, phase gates, merge checkpoints. Pedagogical domain context for teaching agents the business domain. Token leverage note in SESSION.md. |
-| **3.4.0** | Token cost management. SESSION.md context cost log. NOTES.md tiered memory with archive compression. SKILL.md Quick start section with category-specific interface + #1 gotcha. |
-| **3.3.0** | Context engineering principles applied from LlamaIndex article. Recency-first session start. Context budget rules. skills/outputs/ folder for compressed execution results. |
-| **3.2.0** | Debois Pattern 3: DISCOVERY.md exploration log. Pattern 2: ADR template with Supersedes chains and Spec reference field. |
-| **3.1.0** | Skills-as-folders architecture. Each skill gets scripts/, assets/, references/. gotchas.md seeded per category. /careful and /freeze on-demand hooks. |
-| **3.0.0** | Hybrid type composition. Smart intake (5 questions). 7-screen TUI with persistent header bar and step sidebar. v3 colour palette with true-colour ANSI. |
+## For AI Agents
+If you are an AI agent working on this repository, please start by reading [**AGENTS.md**](AGENTS.md).
 
 ---
 

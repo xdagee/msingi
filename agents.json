@@ -14,7 +14,6 @@
         "file-system",
         "terminal",
         "code-execution",
-        "code-execution",
         "web-search"
       ],
       "selfDirection": "high",
@@ -40,7 +39,6 @@
         "file-system",
         "terminal",
         "code-execution",
-        "code-execution",
         "web-search"
       ],
       "selfDirection": "high",
@@ -65,7 +63,6 @@
       "capabilityToAct": [
         "file-system",
         "terminal",
-        "terminal",
         "code-execution"
       ],
       "selfDirection": "high",
@@ -85,7 +82,6 @@
       "docsUrl": "https://opencode.ai/docs",
       "capabilityToAct": [
         "file-system",
-        "terminal",
         "terminal",
         "code-execution"
       ],
@@ -110,7 +106,6 @@
       "capabilityToAct": [
         "file-system",
         "terminal",
-        "terminal",
         "code-execution"
       ],
       "selfDirection": "medium",
@@ -120,62 +115,6 @@
       "nativeConfig": {
         "configDir": null,
         "supports": ["confFile", "ignoreFile"]
-      }
-    },
-    {
-      "id": "deepagents",
-      "name": "Deep Agents CLI",
-      "file": "DEEPAGENTS.md",
-      "scratchpad": "deepagents",
-      "category": "framework-oss",
-      "repo": "https://github.com/langchain-ai/deepagents",
-      "description": "LangChain's open-source deep agent harness (MIT). Planning, subagents, persistent memory. Provider-agnostic.",
-      "docsUrl": "https://docs.langchain.com/oss/python/deepagents/overview",
-      "capabilityToAct": [
-        "file-system",
-        "terminal",
-        "code-execution",
-        "web-search",
-        "web-search",
-        "api-calls"
-      ],
-      "selfDirection": "high",
-      "roles": [
-        "coordinator",
-        "planner",
-        "executor"
-      ],
-      "nativeConfig": {
-        "configDir": ".deepagents",
-        "supports": ["context", "skills"]
-      }
-    },
-    {
-      "id": "antigravity",
-      "name": "Antigravity",
-      "file": "ANTIGRAVITY.md",
-      "scratchpad": "antigravity",
-      "category": "vendor",
-      "repo": "",
-      "description": "Google's advanced agentic coding assistant. Proprietary, state-of-the-art context engineering and planning.",
-      "docsUrl": "https://antigravity.google/docs",
-      "capabilityToAct": [
-        "file-system",
-        "terminal",
-        "code-execution",
-        "web-search",
-        "browser",
-        "browser",
-        "api-calls"
-      ],
-      "selfDirection": "high",
-      "roles": [
-        "planner",
-        "executor"
-      ],
-      "nativeConfig": {
-        "configDir": ".agent",
-        "supports": ["rules", "commands", "workflows"]
       }
     }
   ]

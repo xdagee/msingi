@@ -23,7 +23,6 @@ As defined in the Antigravity architecture for the `msingi` repository.
 **Required Workflows**:
 - [dual-script-parity.md](.agent/workflows/dual-script-parity.md) — Run before any script edit
 - [audit-parity.md](.agent/workflows/audit-parity.md) — Post-edit parity verification
-- [brownfield-scan.md](.agent/workflows/brownfield-scan.md) — Testing `Invoke-ProjectScan`
 
 **Reference**:
 - [coding-standards.md](.agent/rules/coding-standards.md)
@@ -203,34 +202,6 @@ As defined in the Antigravity architecture for the `msingi` repository.
 
 ---
 
-## 6. Go Migration Lead (Rewrite)
-
-**Goal**: Porting Msingi from PS7/Bash to a single Go binary while preserving byte-identical output.
-
-**Primary Domain**: `nasdh/` directory, future `cmd/msingi/` and `internal/` packages
-
-**Key Skills**: 
-- `go-migration` — Bubble Tea TUI, Lipgloss styling, goreleaser distribution
-- `parity-engine` — Cross-platform output consistency
-- `context-engineering` — Preserving scaffold quality in the Go implementation
-
-**Required Workflows**:
-- [go-migration-check.md](.agent/workflows/go-migration-check.md) — Progress tracking and parity verification
-- [dual-script-parity.md](.agent/workflows/dual-script-parity.md) — Output comparison
-
-**Reference**:
-- [go-migration.md](.agent/rules/go-migration.md)
-- [generated-output-contract.md](.agent/rules/generated-output-contract.md)
-
-**Responsibilities**: 
-- Porting `Build-*Md` functions to Go (builders first, TUI second, inference third)
-- Bubble Tea TUI implementation matching all 7 PS7 screens
-- `go:embed` for data files — no runtime file reads
-- goreleaser configuration for cross-platform distribution
-- Golden file tests comparing Go output to PS7 reference
-
----
-
 ## Agent Interaction Patterns
 
 ### Adding a New Skill
@@ -264,12 +235,5 @@ As defined in the Antigravity architecture for the `msingi` repository.
 4. **Foundation Maintainer** mirrors changes to `msingi.sh`
 5. **Release Manager** bumps version and tags release
 
-### Porting a Function to Go
-
-1. **Go Migration Lead** identifies next function to port
-2. **Go Migration Lead** implements in Go with golden file tests
-3. **Go Migration Lead** verifies output parity against PS7 reference
-4. **Go Migration Lead** updates the migration checklist
-
 ---
-*Last updated: 2026-05-01*
+*Last updated: 2026-05-09*

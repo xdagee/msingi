@@ -32,8 +32,7 @@
       skills.json  — skill inference patterns
 
 .PARAMETER Path
-    Target project directory. Greenfield: new subfolder named after project.
-    Brownfield: existing directory to scan and overlay.
+    Target project directory. New subfolder named after project.
 
 .PARAMETER DryRun
     Preview all files that would be created without writing anything.
@@ -53,7 +52,9 @@ param(
     [string]$Path   = "",
     [switch]$DryRun,
     [switch]$Update,
-    [switch]$Check
+    [switch]$Check,
+    [switch]$Audit,
+    [switch]$TestHarness
 )
 
 Set-StrictMode -Off
@@ -1760,108 +1761,6 @@ Non-PII telemetry covering:
     }
 )
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# PROJECT SCANNER
-# ═══════════════════════════════════════════════════════════════════════════════
-function Invoke-ProjectScan {
-    param([string]$ScanPath, [bool]$Deep = $false)
-
-    $depth = if ($Deep) { 5 } else { 2 }
-    Write-Host ""
-    Write-Host "  $(hi "Scanning") $ScanPath $(dim "(depth: $depth)")"
-    Write-Host ""
-
-    $result = @{
-        Name        = Split-Path $ScanPath -Leaf
-        Description = ""
-        Stack       = @()
-        Milestone   = "v1.0 release"
-    }
-
-    # README → description
-    $readme = Get-ChildItem $ScanPath -Filter "README*" -File -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($readme) {
-        $lines = Get-Content $readme.FullName -TotalCount 40 -Encoding UTF8 -ErrorAction SilentlyContinue
-        $desc  = $lines | Where-Object { $_ -notmatch "^#" -and $_.Trim() -ne "" } | Select-Object -First 3
-        if ($desc) { $result.Description = ($desc -join " ").Trim() }
-        Write-Done "README — description extracted"
-    }
-
-    $stackHints = [System.Collections.Generic.List[string]]::new()
-
-    # package.json
-    if (Test-Path "$ScanPath\package.json") {
-        try {
-            $pkg = Get-Content "$ScanPath\package.json" -Raw | ConvertFrom-Json
-            if ($pkg.dependencies)    { $pkg.dependencies.PSObject.Properties.Name    | Select-Object -First 8 | ForEach-Object { $stackHints.Add($_) } }
-            if ($pkg.devDependencies) { $pkg.devDependencies.PSObject.Properties.Name | Select-Object -First 4 | ForEach-Object { $stackHints.Add($_) } }
-        } catch {}
-        Write-Done "package.json"
-    }
-
-    # composer.json
-    if (Test-Path "$ScanPath\composer.json") {
-        try {
-            $comp = Get-Content "$ScanPath\composer.json" -Raw | ConvertFrom-Json
-            if ($comp.require) { $comp.require.PSObject.Properties.Name | Select-Object -First 8 | ForEach-Object { $stackHints.Add($_) } }
-        } catch {}
-        $stackHints.Add("PHP"); Write-Done "composer.json"
-    }
-
-    # Python
-    foreach ($rf in @("requirements.txt","pyproject.toml","Pipfile")) {
-        if (Test-Path "$ScanPath\$rf") {
-            Get-Content "$ScanPath\$rf" -TotalCount 20 -Encoding UTF8 -ErrorAction SilentlyContinue |
-                Where-Object { $_ -match "^\w" -and $_ -notmatch "^\[" } |
-                ForEach-Object { ($_ -split "[>=<!\[ ]")[0].Trim() } |
-                Where-Object { $_ -and $_.Length -gt 1 } | Select-Object -First 8 |
-                ForEach-Object { $stackHints.Add($_) }
-            $stackHints.Add("Python"); Write-Done $rf
-        }
-    }
-
-    # Android
-    if ((Test-Path "$ScanPath\app\build.gradle.kts") -or (Test-Path "$ScanPath\app\build.gradle")) {
-        $stackHints.Add("Kotlin"); $stackHints.Add("Android"); Write-Done "Android Gradle project detected"
-    }
-
-    # Ruby / Go / Rust
-    if (Test-Path "$ScanPath\Gemfile")    { $stackHints.Add("Ruby");  Write-Done "Gemfile" }
-    if (Test-Path "$ScanPath\go.mod")     { $stackHints.Add("Go");    Write-Done "go.mod" }
-    if (Test-Path "$ScanPath\Cargo.toml") { $stackHints.Add("Rust");  Write-Done "Cargo.toml" }
-
-    # File extensions
-    $extMap = @{
-        ".kt"=>"Kotlin"; ".kts"=>"Kotlin"; ".ts"=>"TypeScript"; ".tsx"=>"TypeScript/React"
-        ".jsx"=>"React"; ".py"=>"Python";   ".php"=>"PHP";        ".rb"=>"Ruby"
-        ".go"=>"Go";     ".rs"=>"Rust";     ".cs"=>"C#";          ".java"=>"Java"
-        ".swift"=>"Swift"; ".vue"=>"Vue";   ".svelte"=>"Svelte"
-    }
-    Get-ChildItem $ScanPath -File -Recurse -Depth $depth -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch "node_modules|\.git|vendor|__pycache__|\.next|build|\.gradle" } |
-        Group-Object Extension | Sort-Object Count -Descending | Select-Object -First 8 |
-        ForEach-Object { if ($extMap[$_.Name]) { $stackHints.Add($extMap[$_.Name]) } }
-
-    # Config fingerprints
-    @{
-        "tailwind.config*" = "Tailwind CSS"; "vite.config*" = "Vite"
-        "next.config*"     = "Next.js";      "nuxt.config*" = "Nuxt"
-        "artisan"          = "Laravel";       "manage.py"    = "Django"
-        "libs.versions.toml" = "Gradle Version Catalog"
-    }.GetEnumerator() | ForEach-Object {
-        if (Get-ChildItem $ScanPath -Filter $_.Key -File -Recurse -Depth 2 -ErrorAction SilentlyContinue) {
-            $stackHints.Add($_.Value)
-        }
-    }
-
-    $clean = $stackHints | Where-Object { $_ -and $_.Length -gt 1 } |
-             ForEach-Object { $_.Trim() } | Select-Object -Unique | Select-Object -First 12
-    $result.Stack = @($clean)
-
-    Write-Done "Stack inferred: $(if ($result.Stack) { $result.Stack -join ', ' } else { 'none detected' })"
-    Write-Host ""
-    return $result
-}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SKILL INFERENCE
@@ -2003,6 +1902,17 @@ function Invoke-SkillsReview {
 # FILE BUILDERS — SHARED
 # ═══════════════════════════════════════════════════════════════════════════════
 function Get-Date-Short { return (Get-Date).ToString("yyyy-MM-dd") }
+
+function Render-Template {
+    param([string]$TemplateName, [hashtable]$Tokens = @{})
+    $path = Join-Path $SCRIPT_DIR "templates\$TemplateName"
+    if (-not (Test-Path $path)) { return "ERROR: Template $TemplateName not found." }
+    $content = Get-Content $path -Raw
+    foreach ($key in $Tokens.Keys) {
+        $content = $content.Replace("{{$key}}", $Tokens[$key])
+    }
+    return $content
+}
 
 function Build-AgentConfig {
     param($Agent, $Project)
@@ -2318,7 +2228,7 @@ function Build-ContextMd {
         ($Skills | ForEach-Object { "- [$($_.name)](skills/$($_.id)/SKILL.md) · $($_.category) · UNIMPLEMENTED" }) -join "`n"
     } else { "- To be defined" }
 
-    $status = if ($Project.Mode -eq "brownfield") { "Active — brownfield overlay applied" } else { "Active — greenfield" }
+    $status = "Active — greenfield"
 
     $hybridLine  = if ($Project.SecondaryTypeId) {
         "`n**Hybrid secondary:** $($Project.SecondaryTypeLabel)"
@@ -2432,21 +2342,7 @@ function Build-TrajectoryMd {
 }
 
 function Build-InboxMd {
-    return @"
-# INBOX.md — Inter-Agent Signaling & "Bridge"
-
-> Use this file to leave signals, interrupts, or handoff notes for other agents.
-> This prevents polluting TASKS.md with ephemeral coordination noise.
-
-## 📨 Incoming Signals
-- *(none)*
-
-## 📡 Outgoing Interrupts
-- *(none)*
-
----
-*Protocol: Read INBOX.md at session start. Clear signals once acknowledged.*
-"@
+    return Render-Template "INBOX.md"
 }
 
 function Build-TasksMd {
@@ -2459,11 +2355,6 @@ function Build-TasksMd {
         "- [ ] Verify each skill against its acceptance criteria before marking done"
     } else { "" }
 
-    $brownfieldNote = if ($Project.Mode -eq "brownfield") {
-        "`n- [ ] Verify inferred CONTEXT.md is accurate — confirm description, stack, architecture`n" +
-        "- [ ] Audit existing src/ against generated skill specs`n" +
-        "- [ ] Identify gaps between current state and production quality gates (QUALITY.md)"
-    } else { "" }
 
     # Intake-driven task additions
     $intakeTasks = ""
@@ -2506,7 +2397,7 @@ function Build-TasksMd {
 ### In Progress
 - [ ] Review all generated context files — correct anything that doesn't match the project
 - [ ] Verify SECURITY.md threat model is complete for this project
-- [ ] Set up dev environment per ENVIRONMENTS.md$brownfieldNote
+- [ ] Set up dev environment per ENVIRONMENTS.md
 
 ### Backlog — Foundation
 - [ ] Confirm architecture decisions in CONTEXT.md; log any changes to memory/decisions/
@@ -2534,101 +2425,17 @@ $skillBacklog
 }
 
 function Build-PlansMd {
-    return @"
-# PLANS.md — Execution Plan Specification
-
-> **What is this?** An Execution Plan (ExecPlan) is a living design document that a coding agent or human follows to deliver a complex feature. Use this template for any multi-hour task, significant refactor, or risky implementation.
-
-## How to use ExecPlans
-
-When authoring an ExecPlan, start from the skeleton below. As you research and implement, keep all sections up to date. Add or split entries in the Progress list at every stopping point to affirmatively state the progress made and next steps. 
-
-ExecPlans are living documents — it should always be possible to restart from *only* the ExecPlan and no other work.
-
-## Core Requirements
-
-1. **Self-contained**: Assume the reader is a novice with no prior context. Define terms, repeat assumptions, and embed required knowledge rather than linking out.
-2. **Behavior-focused**: Describe observable outcomes ("navigating to /health returns HTTP 200"), not just code changes ("added HealthCheck struct").
-3. **Idempotent and safe**: Write steps so they can be run multiple times safely. Provide rollback paths for risky operations.
-4. **Validation-first**: Include instructions to run tests, start the system, and observe it doing something useful. Validation is not optional.
-
----
-
-# Skeleton of a Good ExecPlan
-
-*Copy this skeleton to a new file (e.g., `docs/plans/feature-name.md`) when starting a complex task.*
-
-## Purpose / Big Picture
-Explain in a few sentences what someone gains after this change and how they can see it working. State the user-visible behavior you will enable.
-
-## Progress
-Use a list with checkboxes to summarize granular steps. Every stopping point must be documented here.
-- [ ] (YYYY-MM-DD HH:MM) Example step 1.
-- [ ] Example step 2.
-
-## Surprises & Discoveries
-Document unexpected behaviors, bugs, optimizations, or insights discovered during implementation. Provide concise evidence.
-- **Observation:** ...
-  **Evidence:** ...
-
-## Decision Log
-Record every decision made while working on the plan.
-- **Decision:** ...
-  **Rationale:** ...
-  **Date/Author:** ...
-
-## Context and Orientation
-Describe the current state relevant to this task as if the reader knows nothing. Name the key files and modules by full path. Define any non-obvious term you will use.
-
-## Plan of Work
-Describe the sequence of edits and additions. For each edit, name the file and location and what to insert or change. Keep it concrete and minimal.
-
-## Concrete Steps & Validation
-State the exact commands to run and where to run them. When a command generates output, show a short expected transcript so the reader can compare. Describe how to start the system and what to observe.
-
-## Outcomes & Retrospective
-*(Fill this out at completion)* Summarize outcomes, gaps, and lessons learned. Compare the result against the original purpose.
-"@
+    return Render-Template "PLANS.md"
 }
 
 function Build-PlanTemplateMd {
-    return @"
-# ExecPlan: [Feature Name]
-
-## Purpose / Big Picture
-[Explain what someone gains after this change and how they can see it working.]
-
-## Progress
-- [ ] (YYYY-MM-DD HH:MM) [Step 1]
-- [ ] [Step 2]
-
-## Surprises & Discoveries
-- **Observation:** ...
-  **Evidence:** ...
-
-## Decision Log
-- **Decision:** ...
-  **Rationale:** ...
-  **Date/Author:** ...
-
-## Context and Orientation
-[Describe the current state relevant to this task. Name the key files and modules by full path.]
-
-## Plan of Work
-[Describe the sequence of edits and additions.]
-
-## Concrete Steps & Validation
-[State the exact commands to run, expected output transcripts, and validation steps.]
-
-## Outcomes & Retrospective
-[Summarize outcomes and lessons learned at completion.]
-"@
+    return Render-Template "plan_template.md"
 }
 
 function Build-ChangelogMd {
     param($Project)
     $date   = Get-Date-Short
-    $action = if ($Project.Mode -eq "brownfield") { "Brownfield overlay applied" } else { "Project initialised" }
+    $action = "Project initialised"
 
     return @"
 # CHANGELOG.md — Context Evolution Log
@@ -2664,74 +2471,15 @@ This is not a code changelog — it tracks context drift and correction.
 function Build-DiscoveryMd {
     param($Project)
     $date = Get-Date-Short
-
-    return @"
-# DISCOVERY.md — Exploration & Experiments Log
-
-**Project:** $($Project.Name)
-**Type:** $($Project.TypeLabel)
-
-> Pattern 3 of AI-native development: the bottleneck shifts from *delivery* to *discovery*.
-> When generation is cheap, the valuable work is evaluating variants — not executing one.
-> This file tracks approaches explored, prototypes attempted, and decisions about direction.
-> It is distinct from memory/decisions/ (which records confirmed architectural choices).
-
----
-
-## What belongs here
-
-- Alternative approaches considered but not yet decided
-- Prototype results: what was tried, what it revealed, why it was abandoned or adopted
-- Experiments: hypothesis, method, outcome
-- Variant comparisons: A vs B analysis before committing
-
-## What does not belong here
-
-- Confirmed architectural decisions → memory/decisions/
-- Implementation tasks → TASKS.md
-- Context drift corrections → CHANGELOG.md
-
----
-
-## How to use
-
-**Before starting a significant feature:**
-Add an entry describing the approach you are about to try and your hypothesis.
-
-**After attempting something:**
-Record the outcome — even if it failed. Failures are the most valuable entries.
-
-**When comparing approaches:**
-Document both. Record which you chose and why. Link to the ADR in memory/decisions/ if a decision was confirmed.
-
----
-
-## Exploration log
-
-### $date — Project initialisation
-
-**Question:** What is the right scaffold structure for $($Project.Name)?
-**Approach:** Msingi v$VERSION — $($Project.TypeLabel) scaffold with context engineering.
-**Hypothesis:** A canonical CONTEXT.md + skill specs + decision log will prevent context drift across agent sessions.
-**Status:** In progress — evaluate after 3 sessions.
-**Next:** After first milestone, assess whether skill specs reduced implementation loops.
-
----
-
-<!-- Entry template:
-
-### YYYY-MM-DD — [short title]
-
-**Question:** [What are you trying to find out?]
-**Approach:** [What you tried — be specific enough to reproduce]
-**Hypothesis:** [What you expected and why]
-**Outcome:** [What actually happened]
-**Learned:** [What this tells you — even null results are useful]
-**Status:** EXPLORING | ABANDONED | ADOPTED | SUPERSEDED
-**Link:** [ADR in memory/decisions/ if this led to a confirmed decision]
-
--->
-"@
+    
+    $tokens = @{
+        "PROJECT_NAME"       = $Project.Name
+        "PROJECT_TYPE_LABEL" = $Project.TypeLabel
+        "DATE"               = $date
+        "VERSION"            = $VERSION
+    }
+    
+    return Render-Template "DISCOVERY.md" $tokens
 }
 
 function Build-WorkstreamsMd {
@@ -2749,10 +2497,7 @@ function Build-WorkstreamsMd {
         "codex"        = "tests, CI config, tooling scripts"
         "opencode"     = "frontend, UI components, styles"
         "aider"        = "refactoring, code quality, documentation"
-        "deepagents"   = "research tasks, long-horizon planning, multi-step workflows"
-        # legacy entries kept for users who still have these in agents.json
         "qwen-code"    = "infrastructure, deployment config"
-        "antigravity"  = "documentation, code review, refactoring"
     }
 
     $i = 1
@@ -2784,90 +2529,15 @@ function Build-WorkstreamsMd {
         $i++
     }
 
-    return @"
-# WORKSTREAMS.md — Parallel Agent Coordination
-
-**Project:** $($Project.Name)
-**Type:** $typeNote
-**Created:** $date
-
-> Karpathy principle: the skill is now how to manage a small org of agents.
-> Carve the codebase into parallel non-conflicting workstreams.
-> Each workstream owns a defined scope. Agents do not write outside their scope.
-> Human reviews at merge checkpoints — not after every commit.
-
----
-
-## Why workstreams matter
-
-Without scope boundaries, parallel agents create conflicts:
-- Two agents modify the same file simultaneously → merge chaos
-- Agent A makes assumptions about Agent B's output → silent incompatibility
-- No checkpoint → problems discovered late when they are expensive to fix
-
-Workstreams prevent this. Each agent has exclusive write access to its scope.
-Read access is unrestricted — agents can read anything.
-
----
-
-## Coordination rules
-
-1. **Scope is exclusive write, unrestricted read.**
-   An agent may read any file. It may only write to files within its assigned scope.
-
-2. **Declare conflicts before starting.**
-   If two workstreams need to write the same file, resolve ownership before starting.
-   One agent owns the file; the other proposes changes via a PR or a spec update.
-
-3. **Phase gates before parallel work.**
-   Some work must be sequential. Define phases below.
-   Example: auth schema (WS-1) must be confirmed before API layer (WS-2) starts.
-
-4. **Merge checkpoints are mandatory.**
-   A workstream does not merge until all its checkpoint criteria pass.
-   The human reviews at merge — agents do not self-approve merges.
-
-5. **SESSION.md is per-agent, WORKSTREAMS.md is shared.**
-   Update this file when workstream status changes.
-   It is the single view of parallel progress.
-
----
-
-## Phases (define before starting parallel work)
-
-| Phase | Workstreams | Gate to advance |
-|-------|-------------|-----------------|
-| 1 — Foundation | *(e.g. WS-1: schema + auth)* | Schema confirmed, auth contract signed off |
-| 2 — Core build | *(e.g. WS-2, WS-3 in parallel)* | Phase 1 merged and green |
-| 3 — Integration | *(all workstreams)* | All scopes merged, integration tests pass |
-
-*(Edit phases to match your actual delivery plan. Delete rows that do not apply.)*
-
----
-
-## Workstreams
-$wsDefs
----
-
-## Conflict log
-
-| Date | File | WS-A | WS-B | Resolution |
-|------|------|------|------|------------|
-| *(add when a conflict is discovered and resolved)* | | | | |
-
----
-
-## Merge history
-
-| Date | Workstream | What merged | Reviewer |
-|------|------------|-------------|----------|
-| $date | — | Initial scaffold | Msingi v$VERSION |
-
----
-
-*Update this file at every merge checkpoint and whenever scope changes.*
-*Scope changes require human approval — agents do not reassign scope unilaterally.*
-"@
+    $tokens = @{
+        "PROJECT_NAME"           = $Project.Name
+        "PROJECT_TYPE_LABEL"     = $typeNote
+        "DATE"                   = $date
+        "VERSION"                = $VERSION
+        "WORKSTREAM_DEFINITIONS" = $wsDefs
+    }
+    
+    return Render-Template "WORKSTREAMS.md" $tokens
 }
 
 function Build-DomainMd {
@@ -3309,46 +2979,14 @@ $(if ($Project.ScaleProfile -eq "growth" -or $Project.ScaleProfile -eq "enterpri
 function Build-QualityMd {
     param($Project, $Type)
 
-    return @"
-# QUALITY.md — Production Quality Gates
-
-**Project:** $($Project.Name)
-**Type:** $($Project.TypeLabel)
-
-> These are not suggestions. A feature is not complete until every applicable
-> gate below is checked. Agents self-verify — do not mark done and move on.
-> Gates that cannot be met without changing requirements trigger an ESCALATE.
-
----
-
-$($Type.qualityGates)
-
----
-
-## Gate verification process
-
-When an agent completes a feature:
-1. Read through every gate in the relevant section above
-2. For each gate: confirm it passes, or document why it does not apply
-3. Write verification results to scratchpads/[agent]/NOTES.md
-4. If any gate fails: either fix it (preferred) or log the exception in memory/decisions/
-   with Severity: HIGH and the rationale for accepting the exception
-5. Only then mark the task done in TASKS.md
-
-## Exceptions
-Any accepted quality exception must be logged in memory/decisions/ with:
-- Which gate was not met
-- Why it was accepted
-- What the remediation plan is and by when
-- Severity: HIGH minimum (CRITICAL if security-related)
-
-## Entropy Control (Golden Principles)
-Codebases naturally degrade over time. Agents must actively fight entropy by enforcing these golden principles when modifying existing code:
-- **Centralize shared utilities:** If you see the same logic in two places, extract it to a shared module.
-- **Prune dead code:** If you replace a function or deprecate a feature, delete the old code immediately. Do not leave it commented out.
-- **Refactor as you go:** If you touch a file that violates current style or architecture standards, upgrade it to the new standard as part of your PR.
-$($Type.entropyControl)
-"@
+    $tokens = @{
+        "PROJECT_NAME"       = $Project.Name
+        "PROJECT_TYPE_LABEL" = $Project.TypeLabel
+        "QUALITY_GATES"      = $Type.qualityGates
+        "ENTROPY_CONTROL"    = $Type.entropyControl
+    }
+    
+    return Render-Template "QUALITY.md" $tokens
 }
 
 function Build-EnvironmentsMd {
@@ -3465,72 +3103,13 @@ $androidNote
 function Build-ObservabilityMd {
     param($Project, $Type)
 
-    return @"
-# OBSERVABILITY.md — Logging, Metrics, and Alerting
-
-**Project:** $($Project.Name)
-**Type:** $($Project.TypeLabel)
-
-> Defines what the system must emit and what must be monitored.
-> Agents read this before implementing any logging, metrics, or health check logic.
-> Observability is not optional — it is a production requirement.
-
----
-
-$($Type.observabilityFocus)
-
----
-
-## General logging rules (all project types)
-
-### What to log
-- Significant business events (user registered, order placed, model inference complete)
-- All errors with full context: error code, message, relevant IDs, stack trace (server-side only)
-- Performance measurements for critical paths: duration, resource consumed
-- Security events: login attempt, permission denied, token issued/revoked
-
-### What never to log
-- Passwords, tokens, API keys, or any credential — even partially
-- Full PII: names, emails, phone numbers, addresses in production logs
-- Payment card data (PCI scope — log only masked values if required)
-- Raw request bodies that may contain any of the above
-
-### Log format
-Structured JSON preferred. Every log entry must include:
-``timestamp` (ISO 8601), ``level`, ``service`, ``request_id` (where applicable), ``message`.
-
----
-
-## Application Legibility
-The system must be transparent to both humans and agents during runtime.
-- **Correlation IDs:** Every external request must generate or inherit a trace ID passed to all downstream services and logs.
-- **Health endpoints:** The system must expose a ``/_health` or similar endpoint returning component status and version.
-- **Readiness/Liveness:** For orchestrated deployments (e.g., Kubernetes), expose distinct liveness and readiness probes.
-
----
-
-## Tooling decisions (fill in before first production deploy)
-
-| Concern | Tool chosen | Rationale | ADR reference |
-|---------|-------------|-----------|---------------|
-| Log aggregation | *(define)* | | |
-| Metrics / APM | *(define)* | | |
-| Error tracking | *(define)* | | |
-| Alerting | *(define)* | | |
-| Uptime monitoring | *(define)* | | |
-
-Log tooling decisions in memory/decisions/ with Severity: HIGH.
-
----
-
-## Alert runbook stubs
-
-For each alert below, create a runbook entry in memory/decisions/ before going live:
-- What does this alert mean?
-- What are the first 3 steps to diagnose?
-- Who is responsible for responding?
-- What is the escalation path if not resolved in 30 min?
-"@
+    $tokens = @{
+        "PROJECT_NAME"       = $Project.Name
+        "PROJECT_TYPE_LABEL" = $Project.TypeLabel
+        "OBSERVABILITY_FOCUS"= $Type.observabilityFocus
+    }
+    
+    return Render-Template "OBSERVABILITY.md" $tokens
 }
 
 function Build-SessionMd {
@@ -5268,8 +4847,6 @@ function Build-NativeAgentFiles {
         "gemini-cli"   { Build-GeminiNativeConfig   -Project $Project -Root $Root }
         "opencode"     { Build-OpenCodeNativeConfig -Project $Project -Root $Root }
         "aider"        { Build-AiderNativeConfig    -Project $Project -Root $Root }
-        "deepagents"   { Build-DeepAgentsNativeConfig -Project $Project -Root $Root }
-        "antigravity"  { Build-AntigravityNativeConfig -Project $Project -Skills $Skills -Root $Root }
     }
 }
 
@@ -5525,8 +5102,6 @@ workstreams/
 .claude/
 .gemini/
 .opencode/
-.deepagents/
-.agent/
 
 # Build artifacts and dependencies
 node_modules/
@@ -5543,130 +5118,7 @@ vendor/
     Write-Done "Native config: .aider.conf.yml, .aiderignore"
 }
 
-function Build-DeepAgentsNativeConfig {
-    param($Project, [string]$Root)
 
-    # .deepagents/AGENTS.md — project-specific persistent context
-    $daCtx = @"
-# Deep Agents — Project Context
-
-**Project:** $($Project.Name)
-**Type:** $($Project.TypeLabel)
-
-## Session protocol
-1. Read ``scratchpads/deepagents/SESSION.md`` for handoff state
-2. Read TASKS.md for current work
-3. Read the relevant SKILL.md before implementing any feature
-4. Verify against QUALITY.md gates before marking work complete
-
-## Rules
-- Security decisions logged in ``memory/decisions/`` with Severity: CRITICAL
-- Update ``skills/<id>/gotchas.md`` when you encounter failure patterns
-- Write SESSION.md delta before ending any session
-- Set Status: ESCALATE when blocked on human-required decisions
-
-## Scope
-- Read: CONTEXT.md, QUALITY.md, SECURITY.md, ``skills/*/SKILL.md``
-- Write: ``src/``, ``scratchpads/deepagents/``, ``skills/*/outputs/``
-- Append only: ``memory/decisions/``, DISCOVERY.md, DOMAIN.md
-"@
-    Emit ".deepagents\AGENTS.md" $daCtx $Root
-
-    Write-Done "Native config: .deepagents/ (AGENTS.md)"
-}
-
-function Build-AntigravityNativeConfig {
-    param($Project, $Skills, [string]$Root)
-
-    # .agent/rules/security.md
-    $secRules = @"
-# Security Rules
-
-## When to apply
-These rules apply when modifying any file related to authentication, authorization,
-secrets management, cryptography, or data privacy.
-
-## Mandatory checks
-- Read SECURITY.md before any implementation touching auth or credentials
-- Secrets must come from environment variables — never hardcode credentials
-- All auth flows must validate tokens server-side
-- Log security decisions to ``memory/decisions/`` with Severity: CRITICAL
-- Rate-limit all authentication endpoints
-- Sanitize and validate all external inputs at the boundary
-- Error messages must not leak internal structure or stack traces
-- No PII in application logs
-"@
-    Emit ".agent\rules\security.md" $secRules $Root
-
-    # .agent/rules/quality.md
-    $qualRules = @"
-# Quality Rules
-
-## When to apply
-These rules apply when modifying source code or marking tasks complete.
-
-## Before marking any task complete
-- Verify against every applicable gate in QUALITY.md
-- Run tests — a passing build is not a passing feature
-- Check the relevant skill spec in ``skills/`` if implementing a skill
-- Update gotchas.md if you hit a failure pattern
-
-## Code standards
-- Explicit return types on public functions and API boundaries
-- Functions exceeding 50 lines should be evaluated for extraction
-- No dead or commented-out code in committed files
-- All external inputs validated at the boundary
-- Write tests for new business logic before marking a task complete
-"@
-    Emit ".agent\rules\quality.md" $qualRules $Root
-
-    # .agent/commands/implement.md
-    $implCmd = @"
-# /implement — Skill Implementation Workflow
-
-1. **Identify the skill**: Ask which skill to implement, or infer from context
-2. **Read the spec**: Load ``skills/<id>/SKILL.md`` — understand acceptance criteria
-3. **Read gotchas**: Load ``skills/<id>/gotchas.md`` — highest-confidence entries first
-4. **Propose contract**: Map each acceptance criterion to a testable verification step
-5. **Implement**: Write the code, following QUALITY.md gates
-6. **Verify**: Run tests, check each acceptance criterion
-7. **Update gotchas**: Append to gotchas.md if you hit failure patterns
-8. **Report**: Summarise what was done, what was verified, what remains
-"@
-    Emit ".agent\commands\implement.md" $implCmd $Root
-
-    # .agent/commands/handoff.md
-    $handoffCmd = @"
-# /handoff — Session Handoff
-
-1. **Write SESSION.md delta**: Prepend a new block to ``scratchpads/antigravity/SESSION.md``
-   - Record: decisions made, files modified, exact state of each touched file
-   - Use specific deltas (file:line, exact errors) not polished summaries
-2. **Promote decisions**: Move architectural decisions to ``memory/decisions/``
-3. **Set status**: Complete | Partial | ESCALATE
-4. **Update TASKS.md**: Mark completed items, note in-progress items
-5. **Confirm**: SESSION.md has enough detail for the next session to resume
-"@
-    Emit ".agent\commands\handoff.md" $handoffCmd $Root
-
-    # .agent/workflows/review.md
-    $reviewWf = @"
-# Review Workflow
-
-## Purpose
-Review current work against quality gates and security requirements.
-
-## Steps
-1. Load QUALITY.md — read all applicable quality gates
-2. Identify changes — check recent modifications
-3. For each applicable gate: pass, fail (with remediation), or N/A (with reason)
-4. Security scan — check for hardcoded secrets, unsanitised inputs, PII in logs
-5. Produce a structured pass/fail summary
-"@
-    Emit ".agent\workflows\review.md" $reviewWf $Root
-
-    Write-Done "Native config: .agent/ (rules, commands, workflows)"
-}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # WRITE HELPERS
@@ -5707,7 +5159,7 @@ function Show-ExecutionPlan {
         "$($Project.TypeLabel) + $($Project.SecondaryTypeLabel)"
     } else { $Project.TypeLabel }
     Write-Host "    $($Project.Name) $(dim "($typeDisplay)")"
-    Write-Host "    Mode: $($Project.Mode) | Stack: $(if ($Project.Stack) { $Project.Stack -join ', ' } else { 'not specified' })"
+    Write-Host "    Stack: $(if ($Project.Stack) { $Project.Stack -join ', ' } else { 'not specified' })"
     Write-Host ""
 
     # ── Intake ───────────────────────────────────────────────────────────────────
@@ -5793,7 +5245,6 @@ function Show-Review {
     Write-KVTable @(
         @{ Key="Name";        Value=$Project.Name;        Color="BrCyan" }
         @{ Key="Type";        Value=$typeDisplay;         Color="White"  }
-        @{ Key="Mode";        Value=$Project.Mode;        Color="Gray"   }
         @{ Key="Description"; Value=$Project.Description; Color="White"  }
         @{ Key="Stack";       Value=$(if ($Project.Stack -and $Project.Stack.Count -gt 0) { $Project.Stack -join ' · ' } else { "not specified" }); Color="Gray" }
         @{ Key="Milestone";   Value=$Project.Milestone;   Color="BrYellow" }
@@ -5853,8 +5304,8 @@ function Show-Review {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN
-# ═══════════════════════════════════════════════════════════════════════════════
+
+if ($TestHarness) { return }
 
 # ── msingi -Update ─────────────────────────────────────────────────────────────
 if ($Update) {
@@ -5936,6 +5387,18 @@ if ($Update) {
         exit 1
     }
     exit 0
+}
+
+# ── msingi -Audit ─────────────────────────────────────────────────────────────
+if ($Audit) {
+    if (Get-Command "python" -ErrorAction SilentlyContinue) {
+        $auditScript = Join-Path $SCRIPT_DIR "scripts\token-audit.py"
+        python $auditScript --dashboard
+        exit $LASTEXITCODE
+    } else {
+        Write-Warn "Python 3 is required for the Context Efficiency Hub."
+        exit 1
+    }
 }
 
 # ── msingi -Check ──────────────────────────────────────────────────────────────
@@ -6156,18 +5619,19 @@ function Select-WorkflowMode {
 }
 
 $WORKFLOW_MODE = Select-WorkflowMode
+$mode = "greenfield"
 
 # Define step counts per mode
 $STEP_COUNTS = @{
-    "quick" = 4      # Mode, Type, Details, Review (skip Intake, Agents, Skills - use defaults)
-    "guided" = 7     # Mode, Type, Details, Intake, Agents, Skills, Review
-    "advanced" = 12  # Mode, Type, Details, Intake, Agents, Skills, + Advanced questions, Review
+    "quick" = 3      # Type, Details, Review (skip Intake, Agents, Skills - use defaults)
+    "guided" = 6     # Type, Details, Intake, Agents, Skills, Review
+    "advanced" = 11  # Type, Details, Intake, Agents, Skills, + Advanced questions, Review
 }
 
 $STEP_DEFS = @{
-    "quick" = @("Mode", "Type", "Details", "Review")
-    "guided" = @("Mode", "Type", "Details", "Intake", "Agents", "Skills", "Review")
-    "advanced" = @("Mode", "Type", "Details", "Intake", "Agents", "Skills", "Auth", "Data", "Scale", "Env", "Obs", "Review")
+    "quick" = @("Type", "Details", "Review")
+    "guided" = @("Type", "Details", "Intake", "Agents", "Skills", "Review")
+    "advanced" = @("Type", "Details", "Intake", "Agents", "Skills", "Auth", "Data", "Scale", "Env", "Obs", "Review")
 }
 
 $currentStepDefs = $STEP_DEFS[$WORKFLOW_MODE]
@@ -6242,32 +5706,6 @@ if ($WORKFLOW_MODE -eq "quick") {
 while ($currentStep -lt $totalSteps) {
     $stepName = $currentStepDefs[$currentStep]
     switch ($stepName) {
-        "Mode" {
-            Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Mode" -SectionSub "How would you like to proceed?"
-            $defaultIdx = if ($stepState.ModeIdx -ge 0) { $stepState.ModeIdx } else { 0 }
-            $modeIdx = Read-Choice -Items @(
-                "New project       — start from scratch"
-                "Existing project  — scan codebase and overlay structure"
-            ) -Selected $defaultIdx -Prompt "What are we doing?"
-            
-            if ($modeIdx -eq -4) { # G (Goto)
-                Show-StepMenu -CurrentStep $currentStep
-                $jumpTo = Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"
-                if ($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])) { $currentStep = $jumpTo }
-                continue
-            }
-            if ($modeIdx -eq -1 -or $modeIdx -eq -3) { # Esc or Prev
-                if (Read-Confirm "Exit Msingi?" $false) { exit 0 }
-                continue
-            }
-            if ($modeIdx -ge 0 -or $modeIdx -eq -2) { # Selected or Next
-                $idx = if ($modeIdx -eq -2) { $defaultIdx } else { $modeIdx }
-                $stepState.ModeIdx = $idx
-                $mode = if ($idx -eq 0) { "greenfield" } else { "brownfield" }
-                Complete-Step -Index $currentStep
-                $currentStep++
-            }
-        }
         "Type" {
             Write-TwoColumn -StepIndex $currentStep -Mode $mode -SectionTitle "Project type" -SectionSub "Select one or two types. Hybrid merges skill pools — primary drives architecture." -Summary @($mode)
             $typeLabels = @($PROJECT_TYPES | ForEach-Object {
@@ -6329,7 +5767,7 @@ while ($currentStep -lt $totalSteps) {
             Write-Section "Project details"
             if ($null -eq $stepState.Project) {
                 $project = [ordered]@{
-                    Mode = $mode
+                    Mode = "greenfield"
                     TypeId = $selectedType.id
                     TypeLabel = $selectedType.label
                     SecondaryTypeId = if ($secondaryType) { $secondaryType.id } else { "" }
@@ -6347,46 +5785,20 @@ while ($currentStep -lt $totalSteps) {
             } else {
                 $project = $stepState.Project
             }
-            if ($mode -eq "brownfield") {
-                $defaultScan = if ($Path) { $Path } else { (Get-Location).Path }
-                $scanInput = Read-Line "Directory to scan" $defaultScan
-                if ($null -eq $scanInput) { $currentStep--; continue }
-                if ($scanInput -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
-
-                $scanInput = [System.Environment]::ExpandEnvironmentVariables($scanInput) -replace "^~", $env:USERPROFILE
-                if (-not (Test-Path $scanInput)) { Write-Fail "Directory not found: $scanInput"; exit 1 }
-                $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $false
-                $goDeep = Read-Confirm "Run deeper scan? (slower, more thorough)" $false
-                if ($goDeep -eq $null) { $currentStep--; continue }
-                if ($goDeep) { $scanned = Invoke-ProjectScan -ScanPath $scanInput -Deep $true }
-                Write-Host "  $(dim "Scan complete — review and edit inferred values.")"
-                Write-Host ""
-                $project.Name = Read-Line "Project name" $scanned.Name
-                if ($project.Name -eq $null) { $currentStep--; continue }
-                $project.Description = Read-Line "Description" $scanned.Description "(edit or confirm)"
-                if ($project.Description -eq $null) { $currentStep--; continue }
-                $stackStr = Read-Line "Stack" ($scanned.Stack -join ", ") "(edit freely)"
-                if ($stackStr -eq $null) { $currentStep--; continue }
-                $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
-                $project.Milestone = Read-Line "Current milestone" $scanned.Milestone
-                if ($project.Milestone -eq $null) { $currentStep--; continue }
-                $project.TargetPath = $scanInput
-            } else {
-                $project.Name = Read-Line "Project name" $project.Name "(e.g. xdagee-web)"
-                if ($project.Name -eq $null) { $currentStep--; continue }
-                if (-not $project.Name) { Write-Fail "Project name is required."; exit 1 }
-                $project.Description = Read-Line "Description" $project.Description "(one sentence — what it does and who it's for)"
-                if ($project.Description -eq $null) { $currentStep--; continue }
-                $stackStr = Read-Line "Stack" ($project.Stack -join ", ") "(e.g. PHP, MySQL, Tailwind CSS — or Kotlin, Jetpack Compose)"
-                if ($stackStr -eq $null) { $currentStep--; continue }
-                $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
-                $project.Milestone = Read-Line "First milestone" $project.Milestone "(e.g. Auth & core API, Play Store release, v1.0 release)"
-                if ($project.Milestone -eq $null) { $currentStep--; continue }
-                $defaultTarget = if ($Path) { $Path } else { Join-Path (Get-Location).Path $project.Name }
-                $targetInput = Read-Line "Target directory" $defaultTarget
-                if ($targetInput -eq $null) { $currentStep--; continue }
-                $project.TargetPath = [System.Environment]::ExpandEnvironmentVariables($targetInput) -replace "^~", $env:USERPROFILE
-            }
+            $project.Name = Read-Line "Project name" $project.Name "(e.g. xdagee-web)"
+            if ($project.Name -eq $null) { $currentStep--; continue }
+            if (-not $project.Name) { Write-Fail "Project name is required."; exit 1 }
+            $project.Description = Read-Line "Description" $project.Description "(one sentence — what it does and who it's for)"
+            if ($project.Description -eq $null) { $currentStep--; continue }
+            $stackStr = Read-Line "Stack" ($project.Stack -join ", ") "(e.g. PHP, MySQL, Tailwind CSS — or Kotlin, Jetpack Compose)"
+            if ($stackStr -eq $null) { $currentStep--; continue }
+            $project.Stack = if ($stackStr) { @($stackStr -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }) } else { @() }
+            $project.Milestone = Read-Line "First milestone" $project.Milestone "(e.g. Auth & core API, Play Store release, v1.0 release)"
+            if ($project.Milestone -eq $null) { $currentStep--; continue }
+            $defaultTarget = if ($Path) { $Path } else { Join-Path (Get-Location).Path $project.Name }
+            $targetInput = Read-Line "Target directory" $defaultTarget
+            if ($targetInput -eq $null) { $currentStep--; continue }
+            $project.TargetPath = [System.Environment]::ExpandEnvironmentVariables($targetInput) -replace "^~", $env:USERPROFILE
             $stepState.Project = $project
             Complete-Step -Index 2
             
@@ -6877,7 +6289,7 @@ if ($currentStep -ge $totalSteps) {
             if ($s.id -eq "auto-dream") {
                 Emit "skills\$($s.id)\scripts\dream.ps1" @"
 param(
-    [string]`$SessionFile = "scratchpads/antigravity/SESSION.md",
+    [string]`$SessionFile = "scratchpads/<agent>/SESSION.md",
     [string]`$ContextFile = "CONTEXT.md"
 )
 Write-Host "Running Auto-Dream Compaction..."
@@ -6887,7 +6299,7 @@ Write-Host "Compaction complete."
 
                 Emit "skills\$($s.id)\scripts\dream.sh" @"
 #!/usr/bin/env bash
-SESSION_FILE="scratchpads/antigravity/SESSION.md"
+SESSION_FILE="scratchpads/<agent>/SESSION.md"
 CONTEXT_FILE="CONTEXT.md"
 echo "Running Auto-Dream Compaction..."
 # In a real environment, trigger the LLM to compress `$SESSION_FILE into `$CONTEXT_FILE
@@ -6964,7 +6376,7 @@ echo "Workstream `$WORKSTREAM provisioned for `$ROLE."
         secondaryTypeLabel = $project.SecondaryTypeLabel
         stack              = $project.Stack
         milestone          = $project.Milestone
-        mode               = $project.Mode
+        mode               = "greenfield"
     }
     intake  = @{
         audience           = $project.Audience
@@ -6994,7 +6406,7 @@ echo "Workstream `$WORKSTREAM provisioned for `$ROLE."
             $agentNames  = ($selectedAgents | ForEach-Object { $_.name }) -join ", "
             $hybridNote  = if ($project.SecondaryTypeId) { " + $($project.SecondaryTypeLabel)" } else { "" }
             $scaleNote   = "$($project.Intake.ScaleProfile) · $($project.Intake.DeploymentTarget)"
-            $commitBody  = "Generated by Msingi v$VERSION`n`nProject:   $($project.Name) ($($project.TypeLabel)$hybridNote)`nMilestone: $($project.Milestone)`nAgents:    $agentNames`nSkills:    $skillNames`nScale:     $scaleNote`nMode:      $($project.Mode)`n`nBuilt in Accra. Designed for everywhere."
+            $commitBody  = "Generated by Msingi v$VERSION`n`nProject:   $($project.Name) ($($project.TypeLabel)$hybridNote)`nMilestone: $($project.Milestone)`nAgents:    $agentNames`nSkills:    $skillNames`nScale:     $scaleNote`n`nBuilt in Accra. Designed for everywhere."
             $commitMsg   = "feat(scaffold): initialise $($project.Name) ($($project.TypeLabel), $($selectedSkills.Count) skills, $($selectedAgents.Count) agents)"
             git commit --quiet -m $commitMsg -m $commitBody 2>$null | Out-Null
             Pop-Location

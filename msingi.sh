@@ -13,6 +13,27 @@ MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""
 STATE_FILE="${MSINGI_STATE_PATH:-$HOME/.msingi_state.json}"
+AUDIT=0
+
+# Flag parsing
+for arg in "$@"; do
+    case $arg in
+        --dry-run) DRY_RUN=1 ;;
+        --audit)   AUDIT=1 ;;
+        --test-harness) TEST_HARNESS=1 ;;
+    esac
+done
+
+# ── msingi --audit ────────────────────────────────────────────────────────────
+if [[ $AUDIT -eq 1 ]]; then
+    if command -v python3 &>/dev/null; then
+        python3 scripts/token-audit.py --dashboard
+        exit $?
+    else
+        echo "Error: python3 is required for the Context Efficiency Hub."
+        exit 1
+    fi
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SUCCESS INFRASTRUCTURE
@@ -268,154 +289,26 @@ EOF
 }
 
 build_plans_md() {
-    cat <<EOF
-# PLANS.md — Execution Plan Specification
-
-> **What is this?** An Execution Plan (ExecPlan) is a living design document that a coding agent or human follows to deliver a complex feature. Use this template for any multi-hour task, significant refactor, or risky implementation.
-
-## How to use ExecPlans
-
-When authoring an ExecPlan, start from the skeleton below. As you research and implement, keep all sections up to date. Add or split entries in the Progress list at every stopping point to affirmatively state the progress made and next steps. 
-
-ExecPlans are living documents — it should always be possible to restart from *only* the ExecPlan and no other work.
-
-## Core Requirements
-
-1. **Self-contained**: Assume the reader is a novice with no prior context. Define terms, repeat assumptions, and embed required knowledge rather than linking out.
-2. **Behavior-focused**: Describe observable outcomes ("navigating to /health returns HTTP 200"), not just code changes ("added HealthCheck struct").
-3. **Idempotent and safe**: Write steps so they can be run multiple times safely. Provide rollback paths for risky operations.
-4. **Validation-first**: Include instructions to run tests, start the system, and observe it doing something useful. Validation is not optional.
-
----
-
-# Skeleton of a Good ExecPlan
-
-*Copy this skeleton to a new file (e.g., \`.plans/feature-name.md\`) when starting a complex task.*
-
-## Purpose / Big Picture
-Explain in a few sentences what someone gains after this change and how they can see it working. State the user-visible behavior you will enable.
-
-## Progress
-Use a list with checkboxes to summarize granular steps. Every stopping point must be documented here.
-- [ ] (YYYY-MM-DD HH:MM) Example step 1.
-- [ ] Example step 2.
-
-## Surprises & Discoveries
-Document unexpected behaviors, bugs, optimizations, or insights discovered during implementation. Provide concise evidence.
-
-## Decision Log
-Record every decision made while working on the plan.
-- **Decision:** ...
-  **Rationale:** ...
-  **Date/Author:** ...
-
-## Context and Orientation
-Describe the current state relevant to this task as if the reader knows nothing. Name the key files and modules by full path. Define any non-obvious term you will use.
-
-## Plan of Work
-Describe the sequence of edits and additions. For each edit, name the file and location and what to insert or change. Keep it concrete and minimal.
-
-## Concrete Steps & Validation
-State the exact commands to run and where to run them. When a command generates output, show a short expected transcript so the reader can compare. Describe how to start the system and what to observe.
-
-## Outcomes & Retrospective
-*(Fill this out at completion)* Summarize outcomes, gaps, and lessons learned. Compare the result against the original purpose.
-EOF
+    render_template "PLANS.md"
 }
 
 build_plan_template_md() {
-    cat <<EOF
-# ExecPlan: [Feature Name]
-
-## Purpose / Big Picture
-[Explain what someone gains after this change and how they can see it working.]
-
-## Progress
-- [ ] (YYYY-MM-DD HH:MM) [Step 1]
-- [ ] [Step 2]
-
-## Surprises & Discoveries
-- **Observation:** ...
-  **Evidence:** ...
-
-## Decision Log
-- **Decision:** ...
-  **Rationale:** ...
-  **Date/Author:** ...
-
-## Context and Orientation
-[Describe the current state relevant to this task. Name the key files and modules by full path.]
-
-## Plan of Work
-[Describe the sequence of edits and additions.]
-
-## Concrete Steps & Validation
-[State the exact commands to run, expected output transcripts, and validation steps.]
-
-## Outcomes & Retrospective
-[Summarize outcomes and lessons learned at completion.]
-EOF
+    render_template "plan_template.md"
 }
 
 build_quality_md() {
-    cat <<EOF
-# QUALITY.md — Production Quality Gates
-
-**Project:** ${PROJECT_NAME:-Project}
-
-> These are not suggestions. A feature is not complete until every applicable
-> gate below is checked. Agents self-verify — do not mark done and move on.
-> Gates that cannot be met without changing requirements trigger an ESCALATE.
-
----
-
-## Gate verification process
-
-When an agent completes a feature:
-1. Confirm it passes, or document why it does not apply
-2. Write verification results to scratchpads/[agent]/NOTES.md
-3. If any gate fails: either fix it (preferred) or log the exception in memory/decisions/
-   with Severity: HIGH and the rationale for accepting the exception
-4. Only then mark the task done in TASKS.md
-
-## Entropy Control (Golden Principles)
-Codebases naturally degrade over time. Agents must actively fight entropy by enforcing these golden principles when modifying existing code:
-- **Centralize shared utilities:** If you see the same logic in two places, extract it to a shared module.
-- **Prune dead code:** If you replace a function or deprecate a feature, delete the old code immediately. Do not leave it commented out.
-- **Refactor as you go:** If you touch a file that violates current style or architecture standards, upgrade it to the new standard as part of your PR.
-EOF
+    render_template "QUALITY.md" \
+        "PROJECT_NAME=${PROJECT_NAME:-Project}" \
+        "PROJECT_TYPE_LABEL=Web" \
+        "QUALITY_GATES=" \
+        "ENTROPY_CONTROL="
 }
 
 build_observability_md() {
-    cat <<EOF
-# OBSERVABILITY.md — Logging, Metrics, and Alerting
-
-**Project:** ${PROJECT_NAME:-Project}
-
-> Defines what the system must emit and what must be monitored.
-> Agents read this before implementing any logging, metrics, or health check logic.
-> Observability is not optional — it is a production requirement.
-
----
-
-## General logging rules
-
-### What to log
-- Significant business events (user registered, order placed, model inference complete)
-- All errors with full context: error code, message, relevant IDs, stack trace (server-side only)
-- Performance measurements for critical paths: duration, resource consumed
-- Security events: login attempt, permission denied, token issued/revoked
-
-### What never to log
-- Passwords, tokens, API keys, or any credential — even partially
-- Full PII: names, emails, phone numbers, addresses in production logs
-
-## Application Legibility
-The system must be transparent to both humans and agents during runtime.
-- **Correlation IDs:** Every external request must generate or inherit a trace ID passed to all downstream services and logs.
-- **Health endpoints:** The system must expose a \`/_health\` or similar endpoint returning component status and version.
-- **Readiness/Liveness:** For orchestrated deployments (e.g., Kubernetes), expose distinct liveness and readiness probes.
-EOF
+    render_template "OBSERVABILITY.md" \
+        "PROJECT_NAME=${PROJECT_NAME:-Project}" \
+        "PROJECT_TYPE_LABEL=Web" \
+        "OBSERVABILITY_FOCUS="
 }
 build_agent_config() {
     local name="$1" date=$(date +%Y-%m-%d)
@@ -492,21 +385,7 @@ EOF
 }
 
 build_inbox_md() {
-    cat <<EOF
-# INBOX.md — Inter-Agent Signaling & "Bridge"
-
-> Use this file to leave signals, interrupts, or handoff notes for other agents.
-> This prevents polluting TASKS.md with ephemeral coordination noise.
-
-## 📨 Incoming Signals
-- *(none)*
-
-## 📡 Outgoing Interrupts
-- *(none)*
-
----
-*Protocol: Read INBOX.md at session start. Clear signals once acknowledged.*
-EOF
+    render_template "INBOX.md"
 }
 
 build_skill_eval() {
@@ -818,13 +697,13 @@ declare -a STEP_COMPLETED=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
 
 select_workflow_mode() {
     clear; write_header "INIT" "1/1"
-    local modes=("Quick Mode (3 steps)" "Guided Mode (7 steps)" "Advanced Mode (12 steps)")
+    local modes=("Quick Mode (2 steps)" "Guided Mode (5 steps)" "Advanced Mode (7 steps)")
     read_choice "Select Workflow" "${modes[@]}"; res_code=$?
     [[ $res_code -eq 4 ]] && exit 0
     case ${CHOICE_IDX:-1} in
-        0) WORKFLOW_MODE="quick";     STEP_DEFS=("Mode" "Details" "Review") ;;
-        1) WORKFLOW_MODE="guided";    STEP_DEFS=("Mode" "Type" "Details" "Agents" "Skills" "Review") ;;
-        *) WORKFLOW_MODE="advanced";  STEP_DEFS=("Mode" "Type" "Details" "Intake" "Agents" "Skills" "Auth" "Review") ;;
+        0) WORKFLOW_MODE="quick";     STEP_DEFS=("Details" "Review") ;;
+        1) WORKFLOW_MODE="guided";    STEP_DEFS=("Type" "Details" "Agents" "Skills" "Review") ;;
+        *) WORKFLOW_MODE="advanced";  STEP_DEFS=("Type" "Details" "Intake" "Agents" "Skills" "Auth" "Review") ;;
     esac
     TOTAL_STEPS=${#STEP_DEFS[@]}
 }
@@ -837,6 +716,10 @@ show_step_selector() {
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN LOOP
 # ═══════════════════════════════════════════════════════════════════════════════
+if [[ -v TEST_HARNESS && $TEST_HARNESS -eq 1 ]]; then
+    return 0 2>/dev/null || exit 0
+fi
+
 test_terminal
 ALL_AGENTS_JSON=$(load_agents)
 ALL_SKILLS_JSON=$(load_skills)
@@ -848,7 +731,6 @@ while [[ $current_step -lt $TOTAL_STEPS ]]; do
     write_section "$step_name"
     
     case "$step_name" in
-        "Mode")    read_choice "Start" "New" "Existing"; res_code=$? ;;
         "Type")    read_choice "Type" "Web" "Android" "API"; res_code=$? ;;
         "Details") read_line "Project Name" "my-project" "Enter name"; res_code=$?; PROJECT_NAME="${REPLY:-my-project}" ;;
         "Intake")  read_line "Audience" "Public" "Who is this for?"; res_code=$? ;;

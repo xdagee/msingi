@@ -60,14 +60,8 @@ Both PS7 and Bash scripts must produce byte-identical scaffold files for the sam
 - **Quick Start**: Must include the category-specific interface and the #1 gotcha from the skill.
 - **Research Attribution**: Preserve the harness research attribution when present.
 
-## Parity Enforcement
+## Parity & Verification
 
-- **Byte-Identical**: Mandatory: Every `Build-*Md` function must produce identical output byte-for-byte between PS7 and Bash.
-- **Timestamp Exclusion**: Timestamps are the only acceptable divergence — use `$(Get-Date)` / `$(date)`.
-- **Platform Tag**: The "PS7" vs "BASH" platform tag in headers is an acceptable divergence.
+> Dual-script parity rules and verification commands are defined in [`coding-standards.md`](coding-standards.md).
+> **Acceptable divergences:** Timestamps (`Get-Date` vs `date`) and the platform tag ("PS7" vs "BASH") in headers.
 
-## Verification
-
-- **Diff Test**: Run both scripts with identical inputs, diff all generated files.
-- **JSON Validation**: Parse `bootstrap-record.json` with a strict JSON parser after every generation.
-- **Section Check**: Grep for mandatory section headers in each generated file.
