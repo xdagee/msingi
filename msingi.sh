@@ -418,61 +418,66 @@ The system must be transparent to both humans and agents during runtime.
 EOF
 }
 
-build_agent_config() {
-    local agent_name="${1:-Agent}"
-    cat <<EOF
-# ${agent_name}
-> Pointer file — canonical context lives in CONTEXT.md
+## How to use skills (Progressive Disclosure)
+Context is a tax. Avoid "token tax" by using tiered loading:
+1. **Index (Scan)**: Identify relevant skills by their **When to use** trigger (found in CONTEXT.md and individual SKILL.md headers).
+2. **Body (Identify)**: Read the \`SKILL.md\` (the contract) and \`evals/EVAL.md\` (the definition of success) only after a trigger is matched.
+3. **Runtime (Action)**: Fetch other files in the skill folder only when you need the detail.
 
-## Core Context
-> Context engineering principle: dynamic state before static context.
-> Read this section at the start of every session.
+Each skill is a **folder** in \`\`skills/<id>/\`\`:
+- \`\`SKILL.md\`\` — the contract — read to understand the boundary and interface
+- \`\`evals/EVAL.md\`\` — **definition of success** — read before implementation to write tests/evals
+- \`\`gotchas.md\`\` — accumulated failure patterns — **always read before implementing**
+- \`\`config.json\`\` — local settings and status — read to check if first-run setup is needed
+- \`\`scripts/\`\` — helper scripts to run or compose (do not rebuild what is already here)
+- \`\`assets/\`\` — templates, config, and reference files
+- \`\`references/\`\` — detailed API docs and technical specs
+- \`\`outputs/\`\` — structured results from prior skill executions (compressed context for future sessions)
 
-1. \`scratchpads/own/SESSION.md\` — where did I leave off? Resolve any ESCALATE before proceeding
-2. \`TASKS.md\` — what is the current work for this milestone?
-3. \`WORKSTREAMS.md\` — which workstream am I in? What is my scope? Any phase gates to check?
-4. \`scratchpads/own/NOTES.md\` — what do I persistently know across sessions?
-5. \`CONTEXT.md\` — architecture and NFRs (skim if unchanged)
+When starting a task: identify the right skill, read its SKILL.md and EVAL.md, then read gotchas.md — starting with the highest-confidence entries (●●●●● and ●●●●○). Update gotchas.md and config.json before marking a skill task done.
 
-## Where to look next
-> Progressive disclosure: fetch these documents only when relevant to your current task.
-
-- **Design & Architecture**: Check \`docs/\` for architectural diagrams, API contracts, or data models
-- **Execution Plans**: Check \`.plans/\` for active and historical ExecPlans (see PLANS.md for protocol)
-- **Domain Logic**: Check \`DOMAIN.md\` before features touching business rules
-- **Production Rules**: Check \`QUALITY.md\`, \`SECURITY.md\`, \`ENVIRONMENTS.md\`, and \`OBSERVABILITY.md\` before implementation
-
-## Context budget rules
-Context window is finite. Curate it — do not fill it indiscriminately. Target a
-60-80% utilization rate for optimal reasoning performance.
-**Every token must be justified.**
-
-**What to always include (small, high-signal):**
-- SESSION.md handoff — the compressed state of the last session
-- The specific SKILL.md for the current task
-- The specific gotchas.md for the current task
-
-**What to include selectively (fetch on demand, not at session start):**
-- CONTEXT.md sections — only the architecture/NFR blocks relevant to today's task
-- src/ files — only the specific files being modified
-- memory/decisions/ — only when a current decision relates to a prior one
-
-**What to compress before including:**
-- If gotchas.md has grown beyond 20 entries: summarise the resolved ones into a single paragraph before reading — do not load all entries raw
-- If NOTES.md exceeds 300 lines: move old entries to archive tier — do not load archive by default
-
-## Control Tuning
-> Fragility-aware execution: match instruction freedom to task risk.
-
-- **High-Fragility Tasks** (e.g. auth, migrations, core schema): Follow instructions strictly. No deviation without human approval. Use rigid guardrails.
-- **Low-Fragility Tasks** (e.g. CSS, documentation, log messages): Use your judgment. Optimize for aesthetics and clarity. You have freedom to deviate if it improves the outcome.
-- **Unsure?** Treat as High-Fragility. Flag in SESSION.md.
+## Retrieval rules
+- Read \`\`src/\`\` files only when directly required — never load entire directories
+- Use file listing or grep to understand structure before opening files
+- Pull \`\`memory/decisions/\`\` only when a current decision relates to a prior one
+- Never preload speculatively — retrieve just-in-time
 
 ## Doc Gardening Protocol
 Codebases drift. You are responsible for ensuring the context layer remains accurate.
 - Periodically check whether CONTEXT.md, DOMAIN.md, and the active skill's gotchas.md still match the codebase
 - If you notice documentation that is stale, inaccurate, or missing key decisions: autonomously update it
 - Stale context is a bug. Fix it just like you would fix broken code.
+EOF
+}
+
+build_skill_eval() {
+    local name="$1" date=$(date +%Y-%m-%d)
+    cat <<EOF
+# EVAL.md — ${name} Evaluation Spec
+
+> **Zen of Skills (Perplexity):** Define success before implementation. 
+> Write evaluations/tests that cover the happy path, edge cases, and "neighbor confusion."
+
+## 1. Happy Path Scenarios
+- **Scenario:** 
+- **Input:** 
+- **Expected Output:** 
+
+## 2. Edge Case Scenarios
+- **Scenario:** 
+- **Input:** 
+- **Expected Output:** 
+
+## 3. Neighbor Confusion (Routing Boundaries)
+- **Scenario:** 
+- **Why NOT this skill:** 
+- **Which skill to use instead:** 
+
+## 4. Verification Commands
+- \` \`
+
+---
+*Created: ${date} — Msingi v${VERSION}*
 EOF
 }
 
@@ -497,7 +502,7 @@ allowed-tools: [read_file, grep_search, list_dir, write_to_file, run_command]
 
 ${qs}
 
-**Before writing any code:** read \`\`gotchas.md\`\` in this folder.
+**Before writing any code:** read \`\`gotchas.md\`\` and \`\`evals/EVAL.md\`\` in this folder.
 Start with \`\`●●●●●\`\` and \`\`●●●●○\`\` entries — they are the most likely to apply.
 **After implementing:** write a compact result record to \`\`outputs/\`\`, update \`\`last_seen\`\` on any gotcha that triggered, and add new entries for anything unexpected.
 
@@ -515,12 +520,15 @@ Start with \`\`●●●●●\`\` and \`\`●●●●○\`\` entries — they 
 |------|---------|
 | \`\`SKILL.md\`\` | This file — the contract |
 | \`\`gotchas.md\`\` | Failure patterns accumulated from real usage — read before implementing |
+| \`\`evals/EVAL.md\`\`| **Definition of success** — define happy/edge/neighbor cases before code |
+| \`\`config.json\`\` | First-run setup, local overrides, and runtime status |
 | \`\`scripts/\`\` | Purpose-built scripts Claude can run (Utility Bundle pattern) |
 | \`\`assets/\`\` | Templates, reference data, and intermediate plans |
 | \`\`references/\`\` | API docs, type definitions, detailed specs |
 | \`\`outputs/\`\` | Structured results from skill executions — compressed context |
 
 **Progressive disclosure:** Read \`\`SKILL.md\`\` first. Fetch other files only when you need the detail.
+**Eval-First:** Write evaluations to \`\`evals/EVAL.md\`\` before writing implementation code.
 **Plan-Validate-Execute:** Insert a verifiable plan (saved to \`\`assets/plan.json\`\`) before any destructive or batch operation.
 
 ---
@@ -848,6 +856,20 @@ write_done "QUALITY.md"
 write_done "OBSERVABILITY.md"
 write_done "agents/ directory"
 write_done "workstreams/ directory"
+
+# Skills folder and files
+# Note: msingi.sh uses a simplified skill emission. We only emit the SELECTED_SKILL if any.
+# To achieve full parity, we would need to loop over inferred skills.
+# For now, we ensure that if a skill folder is created, it follows the new hub-and-spoke pattern.
+if [[ -n "${SELECTED_SKILL_ID:-}" ]]; then
+    local skill_dir="${PROJECT_NAME:-scaffold}/skills/${SELECTED_SKILL_ID}"
+    mkdir -p "${skill_dir}"/{scripts,assets,references,outputs,evals}
+    echo "$(build_skill_spec "${SELECTED_SKILL_ID}" "${SELECTED_SKILL_NAME}" "general" "Load when..." "Guidance..." "Quickstart..." "Context...")" > "${skill_dir}/SKILL.md"
+    echo "$(build_skill_gotchas "${SELECTED_SKILL_NAME}" "general")" > "${skill_dir}/gotchas.md"
+    echo "$(build_skill_eval "${SELECTED_SKILL_NAME}")" > "${skill_dir}/evals/EVAL.md"
+    echo -e "{\n  \"id\": \"${SELECTED_SKILL_ID}\",\n  \"status\": \"UNCONFIGURED\",\n  \"last_run\": null\n}" > "${skill_dir}/config.json"
+    write_done "skills/${SELECTED_SKILL_ID}/ folder (Hub-and-Spoke)"
+fi
 
 # ── Completion panel (Parity with PS1) ──────────────────────────────────────────
 tw=$(tput cols 2>/dev/null || echo 80)

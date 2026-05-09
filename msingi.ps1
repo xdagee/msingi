@@ -2110,19 +2110,23 @@ Context window is finite. Curate it — do not fill it indiscriminately. Target 
 - **Low-Fragility Tasks** (e.g. CSS, documentation, log messages): Use your judgment. Optimize for aesthetics and clarity. You have freedom to deviate if it improves the outcome.
 - **Unsure?** Treat as High-Fragility. Flag in SESSION.md.
 
-## How to use skills
+## How to use skills (Progressive Disclosure)
+Context is a tax. Avoid "token tax" by using tiered loading:
+1. **Index (Scan)**: Identify relevant skills by their **When to use** trigger (found in CONTEXT.md and individual SKILL.md headers).
+2. **Body (Identify)**: Read the `SKILL.md` (the contract) and `evals/EVAL.md` (the definition of success) only after a trigger is matched.
+3. **Runtime (Action)**: Fetch other files in the skill folder only when you need the detail.
+
 Each skill is a **folder** in ``skills/<id>/``:
-- ``SKILL.md`` — the contract — includes **When to use** trigger to help you identify the right skill
+- ``SKILL.md`` — the contract — read to understand the boundary and interface
+- ``evals/EVAL.md`` — **definition of success** — read before implementation to write tests/evals
 - ``gotchas.md`` — accumulated failure patterns — **always read before implementing**
+- ``config.json`` — local settings and status — read to check if first-run setup is needed
 - ``scripts/`` — helper scripts to run or compose (do not rebuild what is already here)
 - ``assets/`` — templates, config, and reference files
+- ``references/`` — detailed API docs and technical specs
 - ``outputs/`` — structured results from prior skill executions (compressed context for future sessions)
 
-When starting a task: identify the right skill by its **When to use** trigger, read its SKILL.md,
-then read gotchas.md — starting with the highest-confidence entries (``●●●●●`` and ``●●●●○``).
-After completing a skill: complete the gotcha delta checklist in the verification section.
-This is not optional — it is the primary mechanism by which Msingi context self-improves
-across sessions (ACE principle: execution feedback updating bullet metadata).
+When starting a task: identify the right skill, read its SKILL.md and EVAL.md, then read gotchas.md — starting with the highest-confidence entries (``●●●●●`` and ``●●●●○``). Update gotchas.md and config.json before marking a skill task done.
 
 ## Retrieval rules
 - Read ``src/`` files only when directly required — never load entire directories
@@ -3692,7 +3696,7 @@ function Build-SkillSpec {
     }
 
     $hint    = if ($guidance[$Skill.category])  { $guidance[$Skill.category]  } else { "Define constraints before implementing." }
-    $trigger = if ($triggers[$Skill.category])  { $triggers[$Skill.category]  } else { "Use this skill when implementing $($Skill.name) functionality." }
+    $trigger = if ($Skill.description) { $Skill.description } elseif ($triggers[$Skill.category]) { $triggers[$Skill.category] } else { "Use this skill when implementing $($Skill.name) functionality." }
     $short   = if ($Project.Description.Length -gt 120) { $Project.Description.Substring(0,120) + "..." } else { $Project.Description }
     $date    = Get-Date-Short
 
@@ -3731,7 +3735,7 @@ allowed-tools: [read_file, grep_search, list_dir, write_to_file, run_command]
 
 $qs
 
-**Before writing any code:** read ``gotchas.md`` in this folder.
+**Before writing any code:** read ``gotchas.md`` and ``evals/EVAL.md`` in this folder.
 Start with ``●●●●●`` and ``●●●●○`` entries — they are the most likely to apply.
 **After implementing:** write a compact result record to ``outputs/``, update ``last_seen`` on any gotcha that triggered, and add new entries for anything unexpected.
 
@@ -3749,12 +3753,15 @@ Start with ``●●●●●`` and ``●●●●○`` entries — they are the 
 |------|---------|
 | ``SKILL.md`` | This file — the contract |
 | ``gotchas.md`` | Failure patterns accumulated from real usage — read before implementing |
+| ``evals/EVAL.md``| **Definition of success** — define happy/edge/neighbor cases before code |
+| ``config.json`` | First-run setup, local overrides, and runtime status |
 | ``scripts/`` | Purpose-built scripts Claude can run (Utility Bundle pattern) |
 | ``assets/`` | Templates, reference data, and intermediate plans |
 | ``references/`` | API docs, type definitions, detailed specs |
 | ``outputs/`` | Structured results from skill executions — compressed context |
 
 **Progressive disclosure:** Read ``SKILL.md`` first. Fetch other files only when you need the detail.
+**Eval-First:** Write evaluations to ``evals/EVAL.md`` before writing implementation code.
 **Plan-Validate-Execute:** Insert a verifiable plan (saved to ``assets/plan.json``) before any destructive or batch operation.
 
 ---
@@ -3929,6 +3936,44 @@ $hint
 ---
 
 *Spec created: $date — Msingi v$VERSION*
+"@
+}
+
+function Build-SkillEval {
+    param($Skill, $Project)
+    $date = Get-Date-Short
+
+    return @"
+# EVAL.md — $($Skill.name) Evaluation Spec
+
+> **Zen of Skills (Perplexity):** Define success before implementation. 
+> Write evaluations/tests that cover the happy path, edge cases, and "neighbor confusion."
+
+## 1. Happy Path Scenarios
+<!-- Describe the most common successful usage of this skill. -->
+- **Scenario:** 
+- **Input:** 
+- **Expected Output:** 
+
+## 2. Edge Case Scenarios
+<!-- Describe boundary conditions, malformed inputs, and downstream failures. -->
+- **Scenario:** 
+- **Input:** 
+- **Expected Output:** 
+
+## 3. Neighbor Confusion (Routing Boundaries)
+<!-- Define when this skill should NOT be used, even if it seems relevant. -->
+<!-- This helps the agent avoid using the wrong tool for the job. -->
+- **Scenario:** 
+- **Why NOT this skill:** 
+- **Which skill to use instead:** 
+
+## 4. Verification Commands
+<!-- List the specific commands the agent should run to verify success. -->
+- ` `
+
+---
+*Created: $date — Msingi v$VERSION*
 "@
 }
 
@@ -6679,6 +6724,7 @@ if ($currentStep -ge $totalSteps) {
         $dirs += Join-Path $root "skills\$($s.id)\assets"
         $dirs += Join-Path $root "skills\$($s.id)\references"
         $dirs += Join-Path $root "skills\$($s.id)\outputs"
+        $dirs += Join-Path $root "skills\$($s.id)\evals"
     }
 
     if (-not $DryRun) {
@@ -6747,6 +6793,10 @@ if ($currentStep -ge $totalSteps) {
             Emit "skills\$($s.id)\scripts\.keep" "# Add helper scripts here. Claude can run or compose these.`n# Example: validate_input.py, seed_data.sh, run_tests.ps1`n" $root
             # outputs/ — structured results from skill executions (compressed context for future sessions)
             Emit "skills\$($s.id)\outputs\.keep" "# Structured output records from skill executions.`n# Format: one JSON or markdown file per significant execution.`n# Agents read outputs/ instead of re-running expensive operations.`n# Example record: {date, outcome, summary, key_values}`n" $root
+            # config.json — first-run setup and local overrides
+            Emit "skills\$($s.id)\config.json" "{`n  `"id`": `"$($s.id)`",`n  `"status`": `"UNCONFIGURED`",`n  `"last_run`": null`n}" $root
+            # evals/EVAL.md — definition of success before implementation
+            Emit "skills\$($s.id)\evals\EVAL.md" (Build-SkillEval -Skill $s -Project $project) $root
 
             # Auto-Dream scripts
             if ($s.id -eq "auto-dream") {
@@ -6807,7 +6857,7 @@ echo "Workstream `$WORKSTREAM provisioned for `$ROLE."
 "@ $root
             }
         }
-        Write-Done "Skill folders: $($selectedSkills.Count) skills × (SKILL.md + gotchas.md + scripts/ + assets/ + references/)"
+        Write-Done "Skill folders: $($selectedSkills.Count) skills × (SKILL.md + gotchas.md + config.json + eval/ + scripts/ + assets/ + references/)"
     }
 
     # Decisions seed

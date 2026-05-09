@@ -5,6 +5,7 @@
       "id": "user-authentication",
       "name": "User Authentication",
       "category": "auth",
+      "description": "Load when implementing login, tokens, or access control. Use to review security logic.",
       "types": ["web-app", "fullstack", "api-service"],
       "baseline": false,
       "trigger": "auth|login|signup|sign.?in|register|jwt|oauth|session|password|user.?account|credential"
@@ -13,6 +14,7 @@
       "id": "role-based-access",
       "name": "Role-Based Access Control",
       "category": "auth",
+      "description": "Load when managing user roles, permissions, or access control levels (RBAC).",
       "types": ["web-app", "fullstack", "api-service"],
       "baseline": false,
       "trigger": "role|permission|admin|rbac|access.?control|privilege|authoris|authori[zs]"
@@ -21,6 +23,7 @@
       "id": "api-key-management",
       "name": "API Key Management",
       "category": "auth",
+      "description": "Load when implementing API keys, service accounts, or machine-to-machine auth.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
       "trigger": "api.?key|service.?account|machine.?to.?machine|m2m|client.?secret|token.?rotation"
@@ -29,6 +32,7 @@
       "id": "android-auth",
       "name": "Android Authentication",
       "category": "auth",
+      "description": "Load when implementing biometrics, Keystore, or credential management on Android.",
       "types": ["android"],
       "baseline": false,
       "trigger": "biometric|fingerprint|pin|keystore.*auth|android.*auth|credential.*manager|accountmanager"
@@ -37,6 +41,7 @@
       "id": "database-crud",
       "name": "Database Operations",
       "category": "data",
+      "description": "Load when writing database queries, migrations, or ORM models. Use for any persistence task.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "database|mysql|postgres|postgresql|sqlite|mongo|prisma|orm|crud|model|schema|migration|supabase|planetscale|neon"
@@ -45,6 +50,7 @@
       "id": "file-storage",
       "name": "File Storage & Retrieval",
       "category": "data",
+      "description": "Load when implementing file uploads, S3/blob storage, or media management.",
       "types": ["web-app", "fullstack", "api-service"],
       "baseline": false,
       "trigger": "upload|file|storage|s3|blob|bucket|image|media|asset|attachment|cdn|object.?store"
@@ -53,6 +59,7 @@
       "id": "caching",
       "name": "Caching Layer",
       "category": "data",
+      "description": "Load when implementing Redis/Memcached caching layers or cache invalidation logic.",
       "types": ["web-app", "api-service", "fullstack"],
       "baseline": false,
       "trigger": "cache|redis|memcache|ttl|invalidat|in.?memory|read.?through|write.?through"
@@ -61,6 +68,7 @@
       "id": "search",
       "name": "Search & Filtering",
       "category": "data",
+      "description": "Load when implementing search queries, ElasticSearch, or full-text indexing.",
       "types": ["web-app", "fullstack", "api-service"],
       "baseline": false,
       "trigger": "search|filter|query|elasticsearch|algolia|typesense|full.?text|facet|ranking"
@@ -69,14 +77,16 @@
       "id": "room-local-db",
       "name": "Room Local Database",
       "category": "data",
+      "description": "Load when implementing Room local database or DAOs on Android.",
       "types": ["android"],
       "baseline": false,
-      "trigger": "room|local.?db|local.?database|offline|sqlite.*android|dao\b|entity.*android"
+      "trigger": "room|local.?db|local.?database|offline|sqlite.*android|dao\\b|entity.*android"
     },
     {
       "id": "data-sync",
       "name": "Offline Data Sync",
       "category": "data",
+      "description": "Load when implementing offline data synchronization or conflict resolution.",
       "types": ["android", "web-app", "fullstack"],
       "baseline": false,
       "trigger": "offline|sync|conflict.*resolut|merge.*strategy|eventual.*consistency|optimistic.*update|workmanager"
@@ -85,14 +95,16 @@
       "id": "vector-store",
       "name": "Vector Store & Retrieval",
       "category": "data",
+      "description": "Load when implementing vector databases, embeddings, or RAG retrieval logic.",
       "types": ["ml-ai"],
       "baseline": false,
-      "trigger": "vector|embedding|semantic.*search|pgvector|pinecone|weaviate|chroma|faiss|rag\b|retrieval.?augmented"
+      "trigger": "vector|embedding|semantic.*search|pgvector|pinecone|weaviate|chroma|faiss|rag\\b|retrieval.?augmented"
     },
     {
       "id": "feature-store",
       "name": "Feature Store",
       "category": "data",
+      "description": "Load when implementing feature stores (Feast/Tecton) for ML pipelines.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "feature.?store|feast|tecton|feature.*engineer|feature.*pipeline|online.*feature|offline.*feature"
@@ -101,6 +113,7 @@
       "id": "rest-api",
       "name": "REST API Layer",
       "category": "api",
+      "description": "Load when building REST endpoints, controllers, or API routing logic.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "api|rest|endpoint|route|fastapi|express|flask|django|laravel|hono|nestjs|controller|resource"
@@ -109,6 +122,7 @@
       "id": "api-versioning",
       "name": "API Versioning",
       "category": "api",
+      "description": "Load when implementing API versioning (v1, v2) or backward compatibility layers.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
       "trigger": "version|v1|v2|backward.*compat|breaking.*change|deprecat|sunset|api.*contract"
@@ -117,6 +131,7 @@
       "id": "api-validation",
       "name": "Input Validation",
       "category": "api",
+      "description": "Load when implementing input validation, Zod/Pydantic schemas, or request sanitization.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "validat|sanitiz|schema|zod|yup|pydantic|joi|form.?data|input.*check|request.*body"
@@ -125,6 +140,7 @@
       "id": "error-handling",
       "name": "Error Handling & Structured Logging",
       "category": "api",
+      "description": "Load when implementing structured logging, error envelopes, or global exception handlers.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "error|exception|log|logger|sentry|monitor|trace|debug|structured.*log|log.*level|serilog|nlog|event.?viewer|event.?log"
@@ -133,6 +149,7 @@
       "id": "rate-limiting",
       "name": "Rate Limiting & Throttling",
       "category": "api",
+      "description": "Load when implementing rate limiting, throttling, or abuse prevention mechanisms.",
       "types": ["api-service", "web-app", "fullstack"],
       "baseline": false,
       "trigger": "rate.?limit|throttl|quota|burst|concurrency.*limit|ddos|abuse.*prevent"
@@ -141,6 +158,7 @@
       "id": "third-party-integration",
       "name": "Third-Party Integration",
       "category": "api",
+      "description": "Load when integrating Stripe, Twilio, or other external third-party APIs.",
       "types": ["web-app", "api-service", "fullstack"],
       "baseline": false,
       "trigger": "integrat|external.?api|payment|stripe|sendgrid|twilio|slack|zapier|hubspot|third.?party"
@@ -149,6 +167,7 @@
       "id": "webhook-delivery",
       "name": "Webhook Delivery",
       "category": "api",
+      "description": "Load when implementing outbound webhooks, event delivery, or webhook signatures.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
       "trigger": "webhook|outbound.*event|event.*delivery|webhook.*retry|webhook.*signature|svix|hookdeck"
@@ -157,6 +176,7 @@
       "id": "api-documentation",
       "name": "API Documentation",
       "category": "api",
+      "description": "Load when generating OpenAPI/Swagger docs or exporting API contracts.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
       "trigger": "openapi|swagger|redoc|api.?doc|spec.*generat|schema.*export|contract.*first"
@@ -165,6 +185,7 @@
       "id": "graphql",
       "name": "GraphQL API",
       "category": "api",
+      "description": "Load when building GraphQL schemas, resolvers, or subscriptions.",
       "types": ["api-service", "fullstack", "web-app"],
       "baseline": false,
       "trigger": "graphql|apollo|relay|hasura|resolver|subscription.*graphql|mutation.*graphql"
@@ -173,14 +194,16 @@
       "id": "service-health",
       "name": "Health & Readiness Endpoints",
       "category": "api",
+      "description": "Load when implementing health, readiness, or liveness probes for service monitoring.",
       "types": ["api-service", "fullstack", "ml-ai"],
       "baseline": false,
-      "trigger": "health|readiness|liveness|probe|heartbeat|\/ready|\/health|\/ping|uptime"
+      "trigger": "health|readiness|liveness|probe|heartbeat|/ready|/health|/ping|uptime"
     },
     {
       "id": "cli-arg-parsing",
       "name": "CLI Argument Parsing",
       "category": "api",
+      "description": "Load when implementing CLI argument parsing, flags, or interactive prompts.",
       "types": ["cli-tool"],
       "baseline": true,
       "trigger": "arg|flag|option|subcommand|commander|clap|click|cobra|argv|argparse|cli.*parse|command.?line|interactive.*prompt|wizard"
@@ -189,6 +212,7 @@
       "id": "cli-output-formatting",
       "name": "CLI Output Formatting",
       "category": "api",
+      "description": "Load when implementing ANSI colors, spinners, or table formatting in a CLI.",
       "types": ["cli-tool"],
       "baseline": true,
       "trigger": "colour|color|ansi|terminal|tty|spinner|progress.*bar|table.*output|json.*output|stdout|stderr|pretty.*print|human.?readable|machine.?readable"
@@ -197,6 +221,7 @@
       "id": "cli-config-management",
       "name": "CLI Configuration Management",
       "category": "api",
+      "description": "Load when implementing CLI dotfile configuration or persistence settings.",
       "types": ["cli-tool"],
       "baseline": true,
       "trigger": "config.*file|dotfile|\\.config|settings.*file|user.*config|global.*config|local.*config|toml|yaml.*config|ini|profile.*config|persist.*setting"
@@ -205,6 +230,7 @@
       "id": "ui-components",
       "name": "UI Component System",
       "category": "ui",
+      "description": "Load when building UI component systems, design systems, or Storybook components.",
       "types": ["web-app", "fullstack"],
       "baseline": false,
       "trigger": "component|react|vue|svelte|tailwind|shadcn|design.?system|storybook|radix|headless.?ui"
@@ -213,6 +239,7 @@
       "id": "forms",
       "name": "Form Handling & Validation",
       "category": "ui",
+      "description": "Load when implementing form handling, validation, or React Hook Form logic.",
       "types": ["web-app", "fullstack"],
       "baseline": false,
       "trigger": "form|input|submit|formik|react.?hook.?form|react.*form|form.*validat"
@@ -221,6 +248,7 @@
       "id": "data-visualisation",
       "name": "Data Visualisation",
       "category": "ui",
+      "description": "Load when implementing charts, graphs, or data visualization dashboards.",
       "types": ["web-app", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "chart|graph|dashboard|visualis|plot|recharts|d3|analytics.?ui|chart\\.js|echarts"
@@ -229,6 +257,7 @@
       "id": "accessibility",
       "name": "Accessibility",
       "category": "ui",
+      "description": "Load when implementing WCAG compliance, screen reader support, or ARIA labels.",
       "types": ["web-app", "fullstack"],
       "baseline": false,
       "trigger": "accessib|a11y|aria|wcag|screen.?reader|keyboard.*nav|focus.*trap|contrast.*ratio"
@@ -237,6 +266,7 @@
       "id": "seo",
       "name": "SEO & Metadata",
       "category": "ui",
+      "description": "Load when implementing SEO metadata, OpenGraph tags, or sitemap generation.",
       "types": ["web-app", "fullstack"],
       "baseline": false,
       "trigger": "seo|meta.*tag|open.?graph|sitemap|robots\\.txt|canonical|structured.*data|schema\\.org|next.*head"
@@ -245,6 +275,7 @@
       "id": "android-ui",
       "name": "Jetpack Compose UI",
       "category": "ui",
+      "description": "Load when building Jetpack Compose UI, modifiers, or material themes.",
       "types": ["android"],
       "baseline": false,
       "trigger": "compose|composable|recomposition|modifier|theme.*android|material.*3|preview.*composable|scaffold.*compose"
@@ -253,6 +284,7 @@
       "id": "android-navigation",
       "name": "Android Navigation",
       "category": "ui",
+      "description": "Load when implementing Android Navigation, NavGraph, or deep linking.",
       "types": ["android"],
       "baseline": false,
       "trigger": "navigation|navcontroller|backstack|deeplink|bottom.*nav|drawer.*nav|navgraph|destination"
@@ -261,6 +293,7 @@
       "id": "model-inference",
       "name": "Model Inference Pipeline",
       "category": "ml",
+      "description": "Load when implementing model inference pipelines (ONNX, TFLite, PyTorch).",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "inference|predict|llm|transformer|onnx|tflite|torchserve|triton|vllm|batch.*infer|realtime.*infer"
@@ -269,6 +302,7 @@
       "id": "data-preprocessing",
       "name": "Data Preprocessing",
       "category": "ml",
+      "description": "Load when cleaning, normalizing, or tokenizing datasets for ML pipelines.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "preprocess|clean.*data|normaliz|tokeniz|dataset|pipeline.*ml|etl|data.*transform|feature.*extract"
@@ -277,6 +311,7 @@
       "id": "model-training",
       "name": "Model Training Pipeline",
       "category": "ml",
+      "description": "Load when implementing fine-tuning scripts, training loops, or Lora/QLora.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "finetun|fine.?tun|lora|qlora|unsloth|epoch|checkpoint|training.?loop|train.*script|trainer"
@@ -285,6 +320,7 @@
       "id": "experiment-tracking",
       "name": "Experiment Tracking",
       "category": "ml",
+      "description": "Load when implementing experiment tracking (MLFlow, WandB) or metric logging.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "experiment|mlflow|wandb|w&b|neptune|comet|run.*track|metric.*log|artifact.*log|hyperparamet"
@@ -293,6 +329,7 @@
       "id": "model-registry",
       "name": "Model Registry & Versioning",
       "category": "ml",
+      "description": "Load when versioning models, promoting to production, or managing lineage.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "model.*registry|model.*version|model.*store|model.*artifact|stage.*model|promote.*model|model.*lineage"
@@ -301,6 +338,7 @@
       "id": "model-monitoring",
       "name": "Model Monitoring & Drift Detection",
       "category": "ml",
+      "description": "Load when implementing drift detection or monitoring model health in production.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "drift|data.*drift|model.*degrad|monitor.*model|concept.*drift|distribut.*shift|evalu.*production|shadow.*deploy"
@@ -309,6 +347,7 @@
       "id": "prompt-management",
       "name": "Prompt Management",
       "category": "ml",
+      "description": "Load when managing system prompts, prompt templates, or few-shot context.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "prompt|system.?message|context.?window|few.?shot|prompt.?template|prompt.*version|prompt.*eval"
@@ -317,6 +356,7 @@
       "id": "data-validation",
       "name": "Data Validation & Quality",
       "category": "ml",
+      "description": "Load when implementing data quality tests or schema validation for ML data.",
       "types": ["ml-ai"],
       "baseline": false,
       "trigger": "great.*expectations|pandera|data.*valid|schema.*valid.*data|data.*quality|data.*contract|data.*test"
@@ -325,6 +365,7 @@
       "id": "environment-config",
       "name": "Environment & Secrets Management",
       "category": "infra",
+      "description": "Load when managing environment variables, secrets, or Vault/SSM integration.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "env|config|dotenv|secret|environment|settings|\\.env|vault|ssm|secret.*manager|key.*management|credential.*manager|dpapi"
@@ -333,6 +374,7 @@
       "id": "background-jobs",
       "name": "Background Jobs & Queues",
       "category": "infra",
+      "description": "Load when implementing background workers, message queues, or cron jobs.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "queue|job|worker|celery|bull|beanstalk|cron|schedule|async.?task|message.*queue|sqs|rabbitmq"
@@ -341,6 +383,7 @@
       "id": "deployment",
       "name": "Deployment Pipeline",
       "category": "infra",
+      "description": "Load when configuring CI/CD pipelines, Dockerfiles, or cloud deployment (Vercel/Railway).",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "deploy|docker|ci.?cd|github.?action|pipeline|vercel|railway|render|kubernetes|k8s|ecs|cloud.*run"
@@ -349,6 +392,7 @@
       "id": "cli-distribution",
       "name": "CLI Distribution & Installation",
       "category": "infra",
+      "description": "Load when publishing CLI tools to NPM, Homebrew, or other package managers.",
       "types": ["cli-tool"],
       "baseline": false,
       "trigger": "distribut|publish|npm.*publish|cargo.*publish|brew|chocolatey|winget|scoop|install.*script|binary.*release|cross.?compil"
@@ -357,6 +401,7 @@
       "id": "cli-self-update",
       "name": "Self-Update Mechanism",
       "category": "infra",
+      "description": "Load when implementing self-update checks or binary upgrade logic for a CLI.",
       "types": ["cli-tool"],
       "baseline": false,
       "trigger": "self.?update|auto.?update|update.*check|new.*version.*available|upgrade.*cli|check.*release"
@@ -365,6 +410,7 @@
       "id": "android-build-pipeline",
       "name": "Android Build & Release Pipeline",
       "category": "infra",
+      "description": "Load when configuring Android signing, ProGuard, or Play Store release pipelines.",
       "types": ["android"],
       "baseline": false,
       "trigger": "play.*store|release.*build|signing|keystore.*sign|fastlane|gradle.*ci|github.*action.*android|bundle.*release|aab"
@@ -373,22 +419,25 @@
       "id": "monorepo-tooling",
       "name": "Monorepo Tooling",
       "category": "infra",
+      "description": "Load when managing Monorepos (Turborepo/Nx) or shared workspace packages.",
       "types": ["fullstack"],
       "baseline": false,
-      "trigger": "monorepo|turborepo|nx\b|pnpm.*workspace|lerna|yarn.*workspace|shared.*package|workspace.*root"
+      "trigger": "monorepo|turborepo|nx\\b|pnpm.*workspace|lerna|yarn.*workspace|shared.*package|workspace.*root"
     },
     {
       "id": "container-orchestration",
       "name": "Container Orchestration",
       "category": "infra",
+      "description": "Load when configuring Kubernetes, Helm, or ECS container orchestration.",
       "types": ["api-service", "fullstack", "ml-ai"],
       "baseline": false,
-      "trigger": "kubernetes|k8s|helm|kustomize|ecs|fargate|container.*orchestrat|pod\b|namespace.*k8s|ingress.*controller"
+      "trigger": "kubernetes|k8s|helm|kustomize|ecs|fargate|container.*orchestrat|pod\\b|namespace.*k8s|ingress.*controller"
     },
     {
       "id": "observability",
       "name": "Observability & Monitoring",
       "category": "infra",
+      "description": "Load when implementing OpenTelemetry, Datadog monitoring, or alert rules.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "observ|opentelemetry|otel|datadog|prometheus|grafana|trace|span|metric.*collect|alert.*rule|uptime.*monitor"
@@ -397,6 +446,7 @@
       "id": "notifications",
       "name": "Notification System",
       "category": "messaging",
+      "description": "Load when implementing push notifications, emails, or FCM/OneSignal integration.",
       "types": ["web-app", "fullstack", "android"],
       "baseline": false,
       "trigger": "notif|email|sms|push|alert|toast|inbox|fcm|apns|onesignal|sendgrid|email.*templat"
@@ -405,6 +455,7 @@
       "id": "realtime",
       "name": "Real-Time Communication",
       "category": "messaging",
+      "description": "Load when implementing WebSockets, SSE, or real-time event streaming.",
       "types": ["web-app", "fullstack", "api-service"],
       "baseline": false,
       "trigger": "realtime|real.?time|websocket|socket\\.io|live|sse|event.?stream|pubsub|long.?poll"
@@ -413,6 +464,7 @@
       "id": "event-streaming",
       "name": "Event Streaming",
       "category": "messaging",
+      "description": "Load when implementing Kafka, Kinesis, or event-driven architecture (CQRS).",
       "types": ["api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "kafka|kinesis|pubsub|event.*stream|event.*bus|event.*driven|event.*sourcing|cqrs|domain.*event"
@@ -421,6 +473,7 @@
       "id": "automated-testing",
       "name": "Automated Testing",
       "category": "testing",
+      "description": "Load when writing unit, integration, or E2E tests (Jest, Pytest, Playwright).",
       "types": ["web-app", "api-service", "fullstack", "ml-ai", "cli-tool", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "test|jest|pytest|vitest|junit|kotest|mockk|cypress|playwright|unit|integration|e2e|coverage|nunit|xunit|mstest|winappdriver|appium"
@@ -429,14 +482,16 @@
       "id": "contract-testing",
       "name": "API Contract Testing",
       "category": "testing",
+      "description": "Load when implementing API contract testing (Pact) between services.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
-      "trigger": "contract.*test|pact\b|consumer.*driven|provider.*test|api.*test.*contract|breaking.*change.*test"
+      "trigger": "contract.*test|pact\\b|consumer.*driven|provider.*test|api.*test.*contract|breaking.*change.*test"
     },
     {
       "id": "android-testing",
       "name": "Android Instrumented Testing",
       "category": "testing",
+      "description": "Load when writing Android instrumented tests, Espresso, or Compose UI tests.",
       "types": ["android"],
       "baseline": false,
       "trigger": "espresso|ui.*automator|instrumented.*test|android.*test|robolectric|compose.*test|test.*rule"
@@ -445,22 +500,25 @@
       "id": "load-testing",
       "name": "Load & Performance Testing",
       "category": "testing",
+      "description": "Load when implementing load testing (K6, Locust) or performance benchmarking.",
       "types": ["api-service", "fullstack", "ml-ai"],
       "baseline": false,
-      "trigger": "load.*test|stress.*test|performance.*test|k6\b|locust|artillery|gatling|benchmark|throughput.*test"
+      "trigger": "load.*test|stress.*test|performance.*test|k6\\b|locust|artillery|gatling|benchmark|throughput.*test"
     },
     {
       "id": "android-di",
       "name": "Dependency Injection (Hilt)",
       "category": "android",
+      "description": "Load when implementing Dependency Injection with Hilt or Dagger on Android.",
       "types": ["android"],
       "baseline": false,
-      "trigger": "hilt|dagger|inject\b|di\b|dependency.*inject|module.*android|component.*android"
+      "trigger": "hilt|dagger|inject\\b|di\\b|dependency.*inject|module.*android|component.*android"
     },
     {
       "id": "android-viewmodel",
       "name": "ViewModel & State Management",
       "category": "android",
+      "description": "Load when managing ViewModel state, StateFlow, or UI state on Android.",
       "types": ["android"],
       "baseline": false,
       "trigger": "viewmodel|uistate|stateflow|sharedflow|mutablestate|remember.*state|state.*hoist|ui.*state.*android"
@@ -469,6 +527,7 @@
       "id": "android-network",
       "name": "Networking & API Client",
       "category": "android",
+      "description": "Load when implementing Retrofit, OkHttp, or networking layers on Android.",
       "types": ["android"],
       "baseline": false,
       "trigger": "retrofit|ktor.*client|okhttp|api.*client.*android|network.*layer.*android|remote.*datasource"
@@ -477,14 +536,16 @@
       "id": "android-crash-reporting",
       "name": "Crash Reporting & Analytics",
       "category": "android",
+      "description": "Load when implementing Crashlytics or Firebase analytics on Android.",
       "types": ["android"],
       "baseline": false,
-      "trigger": "crashlytics|firebase|crash.*report|analytics.*android|logcat.*production|non.?fatal|anr\b"
+      "trigger": "crashlytics|firebase|crash.*report|analytics.*android|logcat.*production|non.?fatal|anr\\b"
     },
     {
       "id": "app-signing",
       "name": "App Signing & Release Management",
       "category": "android",
+      "description": "Load when managing app signing, keystores, or ProGuard/R8 obfuscation.",
       "types": ["android"],
       "baseline": false,
       "trigger": "signing|keystore|upload.*key|release.*key|sign.*apk|sign.*aab|proguard|r8.*minif|obfuscat"
@@ -493,6 +554,7 @@
       "id": "performance-optimization",
       "name": "Performance & Optimization",
       "category": "infra",
+      "description": "Load when profiling CPU/memory or optimizing latency and bundle size.",
       "types": ["web-app", "api-service", "fullstack", "cli-tool", "ml-ai", "desktop-windows"],
       "baseline": false,
       "trigger": "perf|optim|latency|profil|bench|memory|cpu|throug|load.?time|first.?content|small.?bundle|lazy.?load|dotnet-counters|dottrace|dotmemory"
@@ -501,6 +563,7 @@
       "id": "deployment-automation",
       "name": "Deployment & CI/CD",
       "category": "infra",
+      "description": "Load when automating deployments or configuring multi-stage CI/CD pipelines.",
       "types": ["web-app", "api-service", "fullstack", "cli-tool", "android", "desktop-windows"],
       "baseline": false,
       "trigger": "deploy|ci/?cd|pipeline|github.?action|jenkins|buildkite|release.?autom|continuous.?deploy|blue.?green|canary|msix|appveyor|azure.?pipelines"
@@ -509,6 +572,7 @@
       "id": "api-gateway",
       "name": "API Gateway & Orchestration",
       "category": "api",
+      "description": "Load when configuring API gateways, BFFs, or service mesh orchestration.",
       "types": ["api-service", "fullstack"],
       "baseline": false,
       "trigger": "gateway|orchestrat|bff|aggregat|composite|service.?mesh|api.?manag|kong|traefik|aws.?gateway"
@@ -517,6 +581,7 @@
       "id": "mobile-offline-first",
       "name": "Mobile Offline-First Architecture",
       "category": "data",
+      "description": "Load when implementing offline-first architecture or background sync.",
       "types": ["android", "web-app", "fullstack", "desktop-windows"],
       "baseline": false,
       "trigger": "offline.?first|local.?first|optimistic.*ui|conflict.?free|replicat|crdt|offline.?storage|background.?sync"
@@ -525,6 +590,7 @@
       "id": "windows-desktop-ui",
       "name": "Windows Desktop UI (WinUI/WPF)",
       "category": "ui",
+      "description": "Load when building WinUI/WPF XAML layouts or Windows data binding.",
       "types": ["desktop-windows"],
       "baseline": true,
       "trigger": "xaml|winui|wpf|binding|datacontext|dependency.?property|resource.?dictionary|styles?|template|visual.?state"
@@ -533,6 +599,7 @@
       "id": "msix-packaging",
       "name": "MSIX Packaging & Distribution",
       "category": "infra",
+      "description": "Load when packaging Windows apps for MSIX, Store, or sideloading.",
       "types": ["desktop-windows"],
       "baseline": true,
       "trigger": "msix|appx|manifest|package.*windows|store.*publish|sideload|certificate.*sign|identity.*windows"
@@ -541,6 +608,7 @@
       "id": "agent-evaluation",
       "name": "Agent Evaluation & Testing",
       "category": "testing",
+      "description": "Load when testing agent loops, success rates, or human review costs.",
       "types": ["web-app", "api-service", "fullstack", "ml-ai"],
       "baseline": false,
       "trigger": "agent.*eval|agent.*test|benchmark.*agent|usefulness.*agent|supervision.*cost|human.*review.*rate|agent.*loop|agentic"
@@ -549,6 +617,7 @@
       "id": "auto-dream",
       "name": "Auto-Dream Compaction",
       "category": "core",
+      "description": "Load when compressing session history or consolidating context into CONTEXT.md.",
       "types": ["web-app", "api-service", "ml-ai", "cli-tool", "fullstack", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "memory|compress|dream|consolidate"
@@ -557,6 +626,7 @@
       "id": "swarm-orchestration",
       "name": "Swarm Orchestration Engine",
       "category": "core",
+      "description": "Load when orchestrating sub-agents, workstreams, or multi-agent dispatch.",
       "types": ["web-app", "api-service", "ml-ai", "cli-tool", "fullstack", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "swarm|orchestrate|sub-agent|coordinator|workstream|dispatch"
