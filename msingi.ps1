@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Msingi v3.8.1 — Self-configuring multi-agent project scaffold tool.
@@ -66,7 +66,7 @@ $ErrorActionPreference = "Stop"
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════════════════════════════════════════════
-$VERSION    = "4.0.0"
+$VERSION    = "4.1.0"
 $SCRIPT_DIR = $PSScriptRoot
 $MAX_SKILLS = 12   # type-scoped pool means all matches are relevant
 
@@ -5835,7 +5835,7 @@ while ($currentStep -lt $totalSteps) {
                 "Internal team       — employees or developers only"
                 "B2B clients         — other companies / API consumers"
                 "Mobile app users    — primarily iOS or Android"
-            ) -Selected ($stepState.Project.AudienceIdx -ge 0 ? $stepState.Project.AudienceIdx : 0) -Prompt "Who is the primary audience?"
+            ) -Selected $(if ($stepState.Project.AudienceIdx -ge 0) { $stepState.Project.AudienceIdx } else { 0 }) -Prompt "Who is the primary audience?"
             if ($audienceIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
             if ($audienceIdx -lt 0) { $currentStep--; continue }
             $project.Audience = @("public","internal","b2b","mobile")[$audienceIdx]
@@ -5855,7 +5855,7 @@ while ($currentStep -lt $totalSteps) {
                 $authIdx = Read-Choice -Items @(
                     "Yes — users or services must authenticate"
                     "No  — fully public or pre-authenticated environment"
-                ) -Selected ($stepState.Project.AuthIdx -ge 0 ? $stepState.Project.AuthIdx : 0) -Prompt "Does this system require authentication?"
+                ) -Selected $(if ($stepState.Project.AuthIdx -ge 0) { $stepState.Project.AuthIdx } else { 0 }) -Prompt "Does this system require authentication?"
                 if ($authIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
                 if ($authIdx -lt 0) { $currentStep--; continue }
                 $project.NeedsAuth = ($authIdx -eq 0)
@@ -5899,7 +5899,7 @@ while ($currentStep -lt $totalSteps) {
                 "Edge / CDN         — Cloudflare Workers, Lambda@Edge, Deno Deploy"
                 "Mobile store       — Google Play / Apple App Store"
                 "Desktop install    — Windows / macOS / Linux app"
-            ) -Selected ($stepState.Project.DeployIdx -ge 0 ? $stepState.Project.DeployIdx : 0) -Prompt "Where will this be deployed?"
+            ) -Selected $(if ($stepState.Project.DeployIdx -ge 0) { $stepState.Project.DeployIdx } else { 0 }) -Prompt "Where will this be deployed?"
             if ($deployIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
             if ($deployIdx -lt 0) { $currentStep--; continue }
             $project.DeploymentTarget = @("cloud","on-prem","edge","mobile-store","desktop")[$deployIdx]
@@ -5910,7 +5910,7 @@ while ($currentStep -lt $totalSteps) {
                 "Small team                — 10–500 users, basic availability"
                 "Growth                    — 500–50k users, 99.9% uptime target"
                 "Enterprise                — 50k+ users, SLA, compliance requirements"
-            ) -Selected ($stepState.Project.ScaleIdx -ge 0 ? $stepState.Project.ScaleIdx : 0) -Prompt "What is the expected scale?"
+            ) -Selected $(if ($stepState.Project.ScaleIdx -ge 0) { $stepState.Project.ScaleIdx } else { 0 }) -Prompt "What is the expected scale?"
             if ($scaleIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
             if ($scaleIdx -lt 0) { $currentStep--; continue }
             $project.ScaleProfile = @("personal","small-team","growth","enterprise")[$scaleIdx]
@@ -5938,7 +5938,7 @@ while ($currentStep -lt $totalSteps) {
                 $authIdx = Read-Choice -Items @(
                     "Yes — users or services must authenticate"
                     "No  — fully public or pre-authenticated environment"
-                ) -Selected ($stepState.Project.AuthIdx -ge 0 ? $stepState.Project.AuthIdx : 0) -Prompt "Does this system require authentication?"
+                ) -Selected $(if ($stepState.Project.AuthIdx -ge 0) { $stepState.Project.AuthIdx } else { 0 }) -Prompt "Does this system require authentication?"
                 if ($authIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
                 if ($authIdx -lt 0) { $currentStep--; continue }
                 $project.NeedsAuth = ($authIdx -eq 0)
@@ -5989,7 +5989,7 @@ while ($currentStep -lt $totalSteps) {
                 "Edge / CDN         — Cloudflare Workers, Lambda@Edge, Deno Deploy"
                 "Mobile store       — Google Play / Apple App Store"
                 "Desktop install    — Windows / macOS / Linux app"
-            ) -Selected ($stepState.Project.DeployIdx -ge 0 ? $stepState.Project.DeployIdx : 0) -Prompt "Where will this be deployed?"
+            ) -Selected $(if ($stepState.Project.DeployIdx -ge 0) { $stepState.Project.DeployIdx } else { 0 }) -Prompt "Where will this be deployed?"
             if ($deployIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
             if ($deployIdx -lt 0) { $currentStep--; continue }
             $project.DeploymentTarget = @("cloud","on-prem","edge","mobile-store","desktop")[$deployIdx]
@@ -6000,7 +6000,7 @@ while ($currentStep -lt $totalSteps) {
                 "Small team                — 10–500 users, basic availability"
                 "Growth                    — 500–50k users, 99.9% uptime target"
                 "Enterprise                — 50k+ users, SLA, compliance requirements"
-            ) -Selected ($stepState.Project.ScaleIdx -ge 0 ? $stepState.Project.ScaleIdx : 0) -Prompt "What is the expected scale?"
+            ) -Selected $(if ($stepState.Project.ScaleIdx -ge 0) { $stepState.Project.ScaleIdx } else { 0 }) -Prompt "What is the expected scale?"
             if ($scaleIdx -eq -4) { Show-StepMenu -CurrentStep $currentStep; $jumpTo=Read-Choice -Items $currentStepDefs -Selected $currentStep -Prompt "Jump to"; if($jumpTo -ge 0 -and ($jumpTo -eq 0 -or $stepCompleted[$jumpTo-1])){$currentStep=$jumpTo}; continue }
             if ($scaleIdx -lt 0) { $currentStep--; continue }
             $project.ScaleProfile = @("personal","small-team","growth","enterprise")[$scaleIdx]

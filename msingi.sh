@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ✨═══════════════════════════════════════════════════════════════════════════✨
-#  Msingi v3.10.0 — Self-configuring multi-agent project scaffold tool.
+#  Msingi v4.1.0 — Self-configuring multi-agent project scaffold tool.
 #  macOS / Linux  ·  Bash 4.4+
 #  https://github.com/xdagee/msingi
 #
@@ -157,6 +157,19 @@ write_section() {
 # ═══════════════════════════════════════════════════════════════════════════════
 # INPUT ENGINE
 # ═══════════════════════════════════════════════════════════════════════════════
+render_template() {
+    local template_name="$1"
+    shift
+    local content
+    content=$(cat "templates/${template_name}" 2>/dev/null || echo "ERROR: Template ${template_name} not found.")
+    for token_val in "$@"; do
+        local token="${token_val%%=*}"
+        local val="${token_val#*=}"
+        content="${content//\{\{${token}\}\}/${val}}"
+    done
+    echo "$content"
+}
+
 read_line() {
     local prompt="$1" default="${2:-}" hint="${3:-}"
     printf "  ${STEP_ACTIVE}›${C_RESET}  ${C_BOLD}%s${C_RESET}  ${C_GRAY}[%s] %s${C_RESET}\n  > " "$prompt" "$default" "$hint"
@@ -220,31 +233,108 @@ read_choice() {
 # BUILDERS
 # ═══════════════════════════════════════════════════════════════════════════════
 build_context_md() {
-    cat <<EOF
-# CONTEXT.md — Static-Context Cache Layer
-> This file represents the static baseline of the project. Cache this
-> understanding and only re-read when architecture or fundamental NFRs change.
-Project: ${1:-Project}
-Msingi v${VERSION}
-Generated: $(date)
+    local stack_lines="- To be defined"
+    if [[ -n "${PROJECT_STACK:-}" ]]; then
+        stack_lines=$(echo "${PROJECT_STACK}" | tr ',' '\n' | sed 's/^/- /')
+    fi
 
-## Architecture
-- Mode: ${WORKFLOW_MODE}
-- Stack: ${STACK:-Custom}
+    local status="Active - greenfield"
+    local hybrid_line=""
+    if [[ -n "${PROJECT_SECONDARY_TYPE_LABEL:-}" ]]; then
+        hybrid_line=$'\n'"**Hybrid secondary:** ${PROJECT_SECONDARY_TYPE_LABEL}"
+    fi
 
-## Non-Functional Requirements
-- Performance: < 2.5s page load
-- Quality Gate: 90% test coverage
-EOF
+    local audience_label="${PROJECT_AUDIENCE_LABEL:-Not specified}"
+    local deploy_label="${PROJECT_DEPLOY_LABEL:-Not specified}"
+    local scale_label="${PROJECT_SCALE_LABEL:-Not specified}"
+    local auth_label="Not required"
+    if [[ "${PROJECT_NEEDS_AUTH:-false}" == "true" ]]; then
+        auth_label="Required"
+    fi
+    
+    local data_label="None"
+    if [[ "${PROJECT_HANDLES_SENSITIVE_DATA:-false}" == "true" ]]; then
+        local tags="${PROJECT_SENSITIVE_TAGS:-Yes}"
+        data_label="Yes — ${tags}"
+    fi
+
+    # Stubbing agents and skills for Phase 2 implementation
+    local agent_lines="${AGENT_LINES:-- To be defined}"
+    local docs_lines="${DOCS_LINES:-- To be defined}"
+    local skill_lines="${SKILL_LINES:-- To be defined}"
+
+    render_template "CONTEXT.md" \
+        "PROJECT_NAME=${PROJECT_NAME:-Project}" \
+        "PROJECT_TYPE_LABEL=${PROJECT_TYPE_LABEL:-Web}" \
+        "HYBRID_LINE=${hybrid_line}" \
+        "STATUS=${status}" \
+        "DATE=$(date +%Y-%m-%d)" \
+        "PROJECT_DESCRIPTION=${PROJECT_DESCRIPTION:-A new multi-agent project.}" \
+        "AUDIENCE_LABEL=${audience_label}" \
+        "AUTH_LABEL=${auth_label}" \
+        "DATA_LABEL=${data_label}" \
+        "DEPLOY_LABEL=${deploy_label}" \
+        "SCALE_LABEL=${scale_label}" \
+        "STACK_LINES=${stack_lines}" \
+        "ARCHITECTURE=${PROJECT_ARCHITECTURE:-Standard architecture}" \
+        "NFR=${PROJECT_NFR:-- Performance: < 2.5s page load}" \
+        "AGENT_LINES=${agent_lines}" \
+        "DOCS_LINES=${docs_lines}" \
+        "SKILL_LINES=${skill_lines}" \
+        "MILESTONE=${PROJECT_MILESTONE:-v0.1.0 MVP}"
 }
 
 build_tasks_md() {
-    cat <<EOF
-# TASKS.md — Project Roadmap
-- [ ] Initialize repository
-- [ ] Implement core logic
-- [ ] Add unit tests
-EOF
+    local skill_backlog=""
+    if [[ "${HAS_SKILLS:-false}" == "true" ]]; then
+        skill_backlog="- [ ] Review skill specs in skills/ — define interfaces before any implementation"$'\n'
+        skill_backlog+="- [ ] Implement skills in priority order per skills/README.md"$'\n'
+        skill_backlog+="- [ ] Verify each skill against its acceptance criteria before marking done"
+    fi
+
+    local intake_tasks=""
+    if [[ "${PROJECT_NEEDS_AUTH:-false}" == "true" ]]; then
+        intake_tasks+=$'\n'"- [ ] Design and document auth flow before any implementation (login, logout, token lifecycle)"
+    fi
+    if [[ "${PROJECT_HANDLES_SENSITIVE_DATA:-false}" == "true" ]]; then
+        local tags="${PROJECT_SENSITIVE_TAGS:-sensitive data}"
+        intake_tasks+=$'\n'"- [ ] Complete sensitive data inventory (${tags}) — map all fields before coding"
+        intake_tasks+=$'\n'"- [ ] Define data retention and deletion policy — log decision to memory/decisions/"
+    fi
+    
+    local scale_profile="${PROJECT_SCALE_PROFILE:-}"
+    if [[ "$scale_profile" == "growth" || "$scale_profile" == "enterprise" ]]; then
+        intake_tasks+=$'\n'"- [ ] Define SLO targets (uptime, latency p95) and configure alerting before launch"
+        intake_tasks+=$'\n'"- [ ] Load test at 2x expected peak before promotion to production"
+    fi
+    if [[ "$scale_profile" == "enterprise" ]]; then
+        intake_tasks+=$'\n'"- [ ] Compliance requirements identified and documented in memory/decisions/"
+        intake_tasks+=$'\n'"- [ ] Penetration test scheduled before first external release"
+    fi
+    
+    local deploy_target="${PROJECT_DEPLOYMENT_TARGET:-}"
+    if [[ "$deploy_target" == "mobile-store" ]]; then
+        intake_tasks+=$'\n'"- [ ] App store listing and review requirements documented before feature freeze"
+        intake_tasks+=$'\n'"- [ ] Release signing and keystore management documented in SECURITY.md"
+    fi
+    if [[ "$deploy_target" == "on-prem" ]]; then
+        intake_tasks+=$'\n'"- [ ] Deployment runbook written before handoff — install, upgrade, rollback"
+        intake_tasks+=$'\n'"- [ ] Network and firewall requirements documented in ENVIRONMENTS.md"
+    fi
+    
+    local audience="${PROJECT_AUDIENCE:-}"
+    if [[ "$audience" == "public" ]]; then
+        intake_tasks+=$'\n'"- [ ] Abuse prevention strategy defined (rate limiting, CAPTCHA, anomaly detection)"
+    fi
+    if [[ -n "${PROJECT_SECONDARY_TYPE_ID:-}" ]]; then
+        intake_tasks+=$'\n'"- [ ] Hybrid type integration points identified — document boundary between ${PROJECT_TYPE_LABEL:-} and ${PROJECT_SECONDARY_TYPE_LABEL:-} concerns"
+    fi
+
+    render_template "TASKS.md" \
+        "MILESTONE=${PROJECT_MILESTONE:-v0.1.0 MVP}" \
+        "INTAKE_TASKS=${intake_tasks}" \
+        "SKILL_BACKLOG=${skill_backlog}" \
+        "DATE=$(date +%Y-%m-%d)"
 }
 
 build_workstreams_md() {

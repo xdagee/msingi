@@ -12,17 +12,18 @@ Canonical project documentation for all AI agents working on this repository.
 
 **Msingi** is a context engineering scaffold generator. It runs as an interactive TUI and generates the context infrastructure that AI agents need to start from knowledge rather than exploration.
 
-Two implementations exist in parallel:
-- **msingi.ps1** — PowerShell 7 reference implementation.
-- **msingi.sh** — Bash 4.4+ mirror implementation.
+Architecture:
+- **Go (main.go)** — Canonical data-driven engine (TUI, JSON parsing, Generation).
+- **msingi.sh** — Lightweight Bash stub for zero-dependency portability.
+- **msingi.ps1** — Legacy PowerShell reference implementation.
 
 ## Quick Start
 
 ```bash
-# Windows (PowerShell 7)
-pwsh -File msingi.ps1
+# Canonical (Go)
+go run main.go
 
-# macOS/Linux
+# Lightweight (Bash)
 ./msingi.sh
 ```
 
@@ -41,8 +42,9 @@ Msingi implements five load-bearing behavioural patterns from Anthropic and Perp
 See [.agent/rules/research-patterns.md](.agent/rules/research-patterns.md) for detailed preservation rules.
 
 ## Validation
-- **Syntax**: `bash -n msingi.sh`
-- **Logic**: `python3 tests/test_suite.py` (Planned)
+- **Engine Logic**: `python3 tests/test_suite.py` (10/10 Parity Tests Passing)
+- **TUI Logic**: `go test ./internal/tui/...`
+- **Bash Syntax**: `bash -n msingi.sh`
 
 ---
 *Built in Accra. Designed for everywhere.*
