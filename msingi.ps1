@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Msingi v3.8.1 — Self-configuring multi-agent project scaffold tool.

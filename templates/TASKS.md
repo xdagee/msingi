@@ -25,3 +25,7 @@
 
 ### Done
 - [x] Project bootstrapped ({{DATE}})
+
+---
+*Update after every agent session. A task is not done until QUALITY.md gates pass.*
+*ESCALATE items in SESSION.md take priority over all backlog work.*

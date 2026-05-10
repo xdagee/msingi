@@ -48,3 +48,13 @@
 
 ## Current Milestone
 {{MILESTONE}}
+
+## Process rules
+- memory/decisions/ is append-only — never edit existing entries
+- Agent configs are pointers, not primary context — update CONTEXT.md first
+- All architectural decisions logged in memory/decisions/ before implementation
+- SESSION.md filled at every session end — including on context limit hits
+- ESCALATE status in SESSION.md means: human must review before next session proceeds
+
+---
+*Canonical context. All agent files and decisions derive from this. Update here first.*
