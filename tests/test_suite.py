@@ -214,5 +214,26 @@ class TestMsingiParity(unittest.TestCase):
         self.assertIn("# WORKSTREAMS.md", go_out)
         self.assertIn("### WS-1", go_out)
 
+    def test_new_agents_loaded(self):
+        """Verify the new agents (Goose, Deep Agents, ForgeCode, Plandex) are in agents.json."""
+        with open(os.path.join(ROOT_DIR, "agents.json"), "r", encoding="utf-8") as f:
+            data = json.load(f)
+            agent_ids = [a["id"] for a in data["agents"]]
+            self.assertIn("goose", agent_ids)
+            self.assertIn("deep-agents", agent_ids)
+            self.assertIn("forgecode", agent_ids)
+            self.assertIn("plandex", agent_ids)
+
+    def test_agent_scaffolding(self):
+        """Verify that selecting a new agent generates its specific config file."""
+        # We need a way to trigger the full Generate function in a test.
+        # Currently, builders only return strings.
+        # Let's verify the builder functions for configs directly.
+        go_out = run_go_builder("agent_config", env_vars={"AGENT_ID": "goose"})
+        self.assertIn("project_name:", go_out)
+        
+        go_out = run_go_builder("agent_config", env_vars={"AGENT_ID": "plandex"})
+        self.assertIn("plan_type:", go_out)
+
 if __name__ == '__main__':
     unittest.main()

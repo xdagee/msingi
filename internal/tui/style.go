@@ -14,14 +14,20 @@ var (
 	ColorBg        = lipgloss.Color("#010101") // Very dark background
 
 	// Styles
-	StyleTitle = lipgloss.NewStyle().
+	TitleStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(ColorBrand)
 
-	StyleHeader = lipgloss.NewStyle().
+	SubtleStyle = lipgloss.NewStyle().
+			Foreground(ColorGray).
+			Italic(true)
+
+	PrimaryStyle = lipgloss.NewStyle().
+			Foreground(ColorBrand)
+
+	StyleTitle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(ColorBrand).
-			MarginLeft(2)
+			Foreground(ColorBrand)
 
 	StyleStepActive = lipgloss.NewStyle().
 			Bold(true).

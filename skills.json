@@ -630,6 +630,42 @@
       "types": ["web-app", "api-service", "ml-ai", "cli-tool", "fullstack", "android", "desktop-windows"],
       "baseline": true,
       "trigger": "swarm|orchestrate|sub-agent|coordinator|workstream|dispatch"
+    },
+    {
+      "id": "goose-shell-automation",
+      "name": "Goose Shell Automation",
+      "category": "automation",
+      "description": "Load when automating complex shell tasks or environment setup using Goose.",
+      "types": ["api-service", "cli-tool", "infra"],
+      "baseline": false,
+      "trigger": "goose|shell.*autom|env.*setup|tool.*use"
+    },
+    {
+      "id": "python-orchestration",
+      "name": "Deep Agents Orchestration",
+      "category": "core",
+      "description": "Load when orchestrating complex Python workflows using Deep Agents CLI.",
+      "types": ["ml-ai", "api-service"],
+      "baseline": false,
+      "trigger": "deep.*agent|langchain.*cli|python.*orch|agent.*manager"
+    },
+    {
+      "id": "code-synthesis",
+      "name": "ForgeCode Synthesis",
+      "category": "automation",
+      "description": "Load when automating code synthesis or refactoring using ForgeCode.",
+      "types": ["web-app", "api-service", "fullstack"],
+      "baseline": false,
+      "trigger": "forgecode|synthesis|script.*autom|refactor.*agent"
+    },
+    {
+      "id": "data-planning",
+      "name": "Plandex Data Planning",
+      "category": "data",
+      "description": "Load when performing structured data planning or schema generation using Plandex.",
+      "types": ["web-app", "api-service", "ml-ai"],
+      "baseline": false,
+      "trigger": "plandex|data.*plan|schema.*gen|structured.*workflow"
     }
   ]
 }

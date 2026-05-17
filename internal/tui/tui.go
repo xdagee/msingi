@@ -28,7 +28,7 @@ func Run(agents []models.Agent, skills []models.Skill) (*TUIResult, error) {
 	
 	// Convert InferredSkill back to models.Skill for the generator
 	var selectedSkills []models.Skill
-	for _, s := range finalModel.SelectedSkills {
+	for _, s := range finalModel.InferredSkills {
 		selectedSkills = append(selectedSkills, s.Skill)
 	}
 	

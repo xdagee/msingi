@@ -4,15 +4,10 @@ import (
 	"encoding/json"
 )
 
-// NativeConfig represents the nested config inside an Agent
-type NativeConfig struct {
-	ConfigDir *string  `json:"configDir"`
-	Supports  []string `json:"supports"`
-}
-
 // Project represents the user's project context choices
 type Project struct {
 	Name                 string
+	TypeID               string
 	TypeLabel            string
 	SecondaryTypeID      string
 	SecondaryTypeLabel   string
@@ -34,28 +29,9 @@ type Project struct {
 	AgentLines           string
 	DocsLines            string
 	SkillLines           string
-}
-
-// Agent maps to a single object in agents.json
-type Agent struct {
-	ID              string        `json:"id"`
-	Name            string        `json:"name"`
-	File            string        `json:"file"`
-	Scratchpad      string        `json:"scratchpad"`
-	Category        string        `json:"category"`
-	Repo            string        `json:"repo"`
-	Description     string        `json:"description"`
-	DocsUrl         string        `json:"docsUrl"`
-	CapabilityToAct []string      `json:"capabilityToAct"`
-	SelfDirection   string        `json:"selfDirection"`
-	Roles           []string      `json:"roles"`
-	NativeConfig    *NativeConfig `json:"nativeConfig"`
-}
-
-// AgentsData represents the root object of agents.json
-type AgentsData struct {
-	SchemaVersion string  `json:"schema_version"`
-	Agents        []Agent `json:"agents"`
+	InferredGoals        []string
+	InferredFeatures     []string
+	InferenceConfidence  float64
 }
 
 // Skill maps to a single object in skills.json

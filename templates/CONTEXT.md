@@ -23,6 +23,12 @@
 ## Tech Stack
 {{STACK_LINES}}
 
+## Goals
+{{GOALS_LINES}}
+
+## Features
+{{FEATURE_LINES}}
+
 ## Architecture
 {{ARCHITECTURE}}
 
