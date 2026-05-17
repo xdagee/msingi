@@ -10,6 +10,7 @@
       "repo": "",
       "description": "Anthropic's agentic coding assistant. Closed-source, no public repo.",
       "docsUrl": "https://docs.anthropic.com/en/docs/claude-code/overview",
+      "baseline": true,
       "capabilityToAct": [
         "file-system",
         "terminal",
@@ -35,6 +36,7 @@
       "repo": "https://github.com/google-gemini/gemini-cli",
       "description": "Google's open-source Gemini terminal agent. Apache 2.0. Free tier: 1000 req/day.",
       "docsUrl": "https://geminicli.com/docs/",
+      "baseline": true,
       "capabilityToAct": [
         "file-system",
         "terminal",
@@ -115,6 +117,101 @@
       "nativeConfig": {
         "configDir": null,
         "supports": ["confFile", "ignoreFile"]
+      }
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "file": "GOOSE.md",
+      "scratchpad": "goose",
+      "category": "vendor-oss",
+      "repo": "https://github.com/block/goose",
+      "description": "Block's open-source developer agent. Specialized in shell commands and file editing.",
+      "docsUrl": "https://goose-docs.ai/",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "shell-execution"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "executor",
+        "tool-user"
+      ],
+      "nativeConfig": {
+        "configDir": ".goose",
+        "supports": ["sessions", "tools"]
+      }
+    },
+    {
+      "id": "deep-agents",
+      "name": "Deep Agents CLI",
+      "file": "DEEP_AGENTS.md",
+      "scratchpad": "deep-agents",
+      "category": "oss",
+      "repo": "https://github.com/langchain-ai/langchain",
+      "description": "LangChain-based multi-agent orchestration CLI for complex Python workflows.",
+      "docsUrl": "https://docs.langchain.com/oss/python/deepagents/cli/overview",
+      "capabilityToAct": [
+        "orchestration",
+        "api-interaction",
+        "code-generation"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "orchestrator",
+        "agent-manager"
+      ],
+      "nativeConfig": {
+        "configDir": ".deepagents",
+        "supports": ["chains", "agents"]
+      }
+    },
+    {
+      "id": "forgecode",
+      "name": "ForgeCode",
+      "file": "FORGECODE.md",
+      "scratchpad": "forgecode",
+      "category": "vendor",
+      "repo": "",
+      "description": "High-performance coding automation and script synthesis agent.",
+      "docsUrl": "https://forgecode.dev/docs/",
+      "capabilityToAct": [
+        "code-synthesis",
+        "script-automation",
+        "refactoring"
+      ],
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": ".forgecode",
+        "supports": ["templates", "scripts"]
+      }
+    },
+    {
+      "id": "plandex",
+      "name": "Plandex",
+      "file": "PLANDEX.md",
+      "scratchpad": "plandex",
+      "category": "oss",
+      "repo": "https://github.com/plandex-ai/plandex",
+      "description": "AI-powered data planning and schema generation agent for structured workflows.",
+      "docsUrl": "https://plandex.ai/",
+      "capabilityToAct": [
+        "data-planning",
+        "schema-generation",
+        "automation"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "schema-designer"
+      ],
+      "nativeConfig": {
+        "configDir": ".plandex",
+        "supports": ["plans", "schemas"]
       }
     }
   ]

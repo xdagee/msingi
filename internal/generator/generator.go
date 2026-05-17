@@ -47,8 +47,8 @@ func Generate(eng *engine.Engine, p *models.Project, agents []models.Agent, skil
 		"TASKS.md":       builders.BuildTasksMd(eng, p),
 		"WORKSTREAMS.md": builders.BuildWorkstreamsMd(eng, p, agents, skills),
 		"TRAJECTORY.md":  builders.BuildTrajectoryMd(eng, p),
-		"QUALITY.md":     builders.BuildQualityMd(eng, p.Name),
-		"OBSERVABILITY.md": builders.BuildObservabilityMd(eng, p.Name),
+		"QUALITY.md":     builders.BuildQualityMd(eng, p.Name, p.TypeLabel),
+		"OBSERVABILITY.md": builders.BuildObservabilityMd(eng, p.Name, p.TypeLabel),
 	}
 
 	for relPath, content := range files {
@@ -81,8 +81,30 @@ func Generate(eng *engine.Engine, p *models.Project, agents []models.Agent, skil
 			fmt.Printf("[DRY-RUN] Would create directory: %s\n", scratchDir)
 			fmt.Printf("[DRY-RUN] Would write file: %s/SESSION.md\n", scratchDir)
 		} else {
-			os.MkdirAll(scratchDir, 0755)
-			writeFile(filepath.Join(scratchDir, "SESSION.md"), "# Session Log")
+			if err := os.MkdirAll(scratchDir, 0755); err != nil {
+				return err
+			}
+			if err := writeFile(filepath.Join(scratchDir, "SESSION.md"), "# Session Log"); err != nil {
+				return err
+			}
+		}
+
+		// Agent-specific config files
+		if !dryRun {
+			var err error
+			switch a.ID {
+			case "goose":
+				err = writeFile(filepath.Join(root, ".goose.yaml"), builders.BuildGooseConfig(p))
+			case "deep-agents":
+				err = writeFile(filepath.Join(root, "deepagents.json"), builders.BuildDeepAgentsConfig(p))
+			case "forgecode":
+				err = writeFile(filepath.Join(root, "forgecode.json"), builders.BuildForgeCodeConfig(p))
+			case "plandex":
+				err = writeFile(filepath.Join(root, "plandex.yaml"), builders.BuildPlandexConfig(p))
+			}
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -93,10 +115,18 @@ func Generate(eng *engine.Engine, p *models.Project, agents []models.Agent, skil
 			fmt.Printf("[DRY-RUN] Would create directory: %s\n", skillDir)
 			fmt.Printf("[DRY-RUN] Would write skill files for: %s\n", s.ID)
 		} else {
-			os.MkdirAll(skillDir, 0755)
-			writeFile(filepath.Join(skillDir, "SKILL.md"), builders.BuildSkillSpecMd(eng, &s, p))
-			writeFile(filepath.Join(skillDir, "gotchas.md"), builders.BuildSkillGotchasMd(eng, &s, p))
-			writeFile(filepath.Join(skillDir, "EVAL.md"), builders.BuildSkillEvalMd(eng, &s, p))
+			if err := os.MkdirAll(skillDir, 0755); err != nil {
+				return err
+			}
+			if err := writeFile(filepath.Join(skillDir, "SKILL.md"), builders.BuildSkillSpecMd(eng, &s, p)); err != nil {
+				return err
+			}
+			if err := writeFile(filepath.Join(skillDir, "gotchas.md"), builders.BuildSkillGotchasMd(eng, &s, p)); err != nil {
+				return err
+			}
+			if err := writeFile(filepath.Join(skillDir, "EVAL.md"), builders.BuildSkillEvalMd(eng, &s, p)); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -1,9 +1,12 @@
 package builders
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/xdagee/msingi/internal/engine"
 	"github.com/xdagee/msingi/internal/models"
@@ -152,6 +155,15 @@ func BuildContextMd(e *engine.Engine, p *models.Project) string {
 		nfr = "- Performance: < 2.5s page load"
 	}
 
+	goalsLines := "- To be defined"
+	if len(p.InferredGoals) > 0 {
+		goalsLines = "- " + strings.Join(p.InferredGoals, "\n- ")
+	}
+	featureLines := "- To be defined"
+	if len(p.InferredFeatures) > 0 {
+		featureLines = "- " + strings.Join(p.InferredFeatures, "\n- ")
+	}
+
 	return e.RenderTemplate("CONTEXT.md", map[string]string{
 		"PROJECT_NAME":        projName,
 		"PROJECT_TYPE_LABEL":  typeLabel,
@@ -171,6 +183,8 @@ func BuildContextMd(e *engine.Engine, p *models.Project) string {
 		"DOCS_LINES":          docsLines,
 		"SKILL_LINES":         skillLines,
 		"MILESTONE":           milestone,
+		"GOALS_LINES":         goalsLines,
+		"FEATURE_LINES":       featureLines,
 	})
 }
 
@@ -188,7 +202,6 @@ func BuildWorkstreamsMd(e *engine.Engine, p *models.Project, agents []models.Age
 		"codex":       "tests, CI config, tooling scripts",
 		"opencode":    "frontend, UI components, styles",
 		"aider":       "refactoring, code quality, documentation",
-		"qwen-code":   "infrastructure, deployment config",
 	}
 
 	wsDefs := ""
@@ -390,3 +403,44 @@ func BuildSkillEvalMd(e *engine.Engine, s *models.Skill, p *models.Project) stri
 	})
 }
 
+// BuildGooseConfig generates a .goose.yaml configuration
+func BuildGooseConfig(p *models.Project) string {
+	config := map[string]interface{}{
+		"project_name": p.Name,
+		"description":  p.Description,
+		"version":      "1.0.0",
+	}
+	b, _ := yaml.Marshal(config)
+	return string(b)
+}
+
+// BuildDeepAgentsConfig generates a deepagents.json configuration
+func BuildDeepAgentsConfig(p *models.Project) string {
+	config := map[string]interface{}{
+		"name":        p.Name,
+		"description": p.Description,
+		"engine":      "langchain",
+	}
+	b, _ := json.MarshalIndent(config, "", "  ")
+	return string(b) + "\n"
+}
+
+// BuildForgeCodeConfig generates a forgecode.json configuration
+func BuildForgeCodeConfig(p *models.Project) string {
+	config := map[string]interface{}{
+		"project":    p.Name,
+		"automation": true,
+	}
+	b, _ := json.MarshalIndent(config, "", "  ")
+	return string(b) + "\n"
+}
+
+// BuildPlandexConfig generates a plandex.yaml configuration
+func BuildPlandexConfig(p *models.Project) string {
+	config := map[string]interface{}{
+		"name":      p.Name,
+		"plan_type": "structured",
+	}
+	b, _ := yaml.Marshal(config)
+	return string(b)
+}

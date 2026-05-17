@@ -98,9 +98,9 @@ func main() {
 		case "inbox":
 			output = builders.BuildInboxMd(eng)
 		case "quality":
-			output = builders.BuildQualityMd(eng, proj.Name)
+			output = builders.BuildQualityMd(eng, proj.Name, proj.TypeLabel)
 		case "observability":
-			output = builders.BuildObservabilityMd(eng, proj.Name)
+			output = builders.BuildObservabilityMd(eng, proj.Name, proj.TypeLabel)
 		case "context":
 			output = builders.BuildContextMd(eng, proj)
 		case "tasks":
@@ -126,6 +126,24 @@ func main() {
 				os.Exit(1)
 			}
 			output = builders.BuildAgentMd(eng, targetAgent, proj)
+		case "agent_config":
+			if *agentID == "" {
+				fmt.Fprintln(os.Stderr, "--agent-id required for agent_config builder")
+				os.Exit(1)
+			}
+			switch *agentID {
+			case "goose":
+				output = builders.BuildGooseConfig(proj)
+			case "deep-agents":
+				output = builders.BuildDeepAgentsConfig(proj)
+			case "forgecode":
+				output = builders.BuildForgeCodeConfig(proj)
+			case "plandex":
+				output = builders.BuildPlandexConfig(proj)
+			default:
+				fmt.Fprintf(os.Stderr, "No config builder for agent %s\n", *agentID)
+				os.Exit(1)
+			}
 		case "skill_spec":
 			if *skillID == "" {
 				fmt.Fprintln(os.Stderr, "--skill-id required for skill builders")

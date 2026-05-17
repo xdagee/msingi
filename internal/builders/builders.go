@@ -20,26 +20,32 @@ func BuildInboxMd(e *engine.Engine) string {
 }
 
 // BuildQualityMd generates the QUALITY.md file
-func BuildQualityMd(e *engine.Engine, projectName string) string {
+func BuildQualityMd(e *engine.Engine, projectName string, typeLabel string) string {
 	if projectName == "" {
 		projectName = "Project"
 	}
+	if typeLabel == "" {
+		typeLabel = "Web"
+	}
 	return e.RenderTemplate("QUALITY.md", map[string]string{
 		"PROJECT_NAME":       projectName,
-		"PROJECT_TYPE_LABEL": "Web",
+		"PROJECT_TYPE_LABEL": typeLabel,
 		"QUALITY_GATES":      "",
 		"ENTROPY_CONTROL":    "",
 	})
 }
 
 // BuildObservabilityMd generates the OBSERVABILITY.md file
-func BuildObservabilityMd(e *engine.Engine, projectName string) string {
+func BuildObservabilityMd(e *engine.Engine, projectName string, typeLabel string) string {
 	if projectName == "" {
 		projectName = "Project"
 	}
+	if typeLabel == "" {
+		typeLabel = "Web"
+	}
 	return e.RenderTemplate("OBSERVABILITY.md", map[string]string{
 		"PROJECT_NAME":        projectName,
-		"PROJECT_TYPE_LABEL":  "Web",
+		"PROJECT_TYPE_LABEL":  typeLabel,
 		"OBSERVABILITY_FOCUS": "",
 	})
 }

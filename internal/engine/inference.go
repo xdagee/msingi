@@ -3,6 +3,7 @@ package engine
 import (
 	"math"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/xdagee/msingi/internal/models"
@@ -233,6 +234,10 @@ func InferSkills(haystack string, typeID string, allSkills []models.Skill) []Inf
 		}
 	}
 
+	sort.Slice(matched, func(i, j int) bool {
+		return matched[i].Confidence > matched[j].Confidence
+	})
+
 	if len(matched) > maxSkills {
 		return matched[:maxSkills]
 	}
@@ -245,14 +250,10 @@ func InferAgents(features []string, allAgents []models.Agent) []models.Agent {
 	seen := make(map[string]bool)
 
 	// Baselines
-	baselineIDs := []string{"claude-code", "gemini-cli"}
-	for _, id := range baselineIDs {
-		for _, a := range allAgents {
-			if a.ID == id {
-				selected = append(selected, a)
-				seen[id] = true
-				break
-			}
+	for _, a := range allAgents {
+		if a.Baseline {
+			selected = append(selected, a)
+			seen[a.ID] = true
 		}
 	}
 
@@ -266,10 +267,6 @@ func InferAgents(features []string, allAgents []models.Agent) []models.Agent {
 			
 			// Map specific features to agents
 			if (fLow == "frontend" || fLow == "ui") && a.ID == "opencode" {
-				selected = append(selected, a)
-				seen[a.ID] = true
-			}
-			if (fLow == "infra" || fLow == "deployment") && a.ID == "qwen-code" {
 				selected = append(selected, a)
 				seen[a.ID] = true
 			}
