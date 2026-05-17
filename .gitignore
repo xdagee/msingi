@@ -34,3 +34,8 @@ desktop.ini
 nul
 *.tmp
 *.bak
+
+# Binaries & Caches
+*.exe
+*.exe~
+__pycache__/

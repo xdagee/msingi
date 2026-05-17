@@ -44,7 +44,7 @@ func ValidateTemplates(fsys embed.FS, verbose bool) error {
 						fmt.Printf("WARNING: %s\n", msg)
 					} else {
 						// In non-verbose mode, we still want to know if critical templates are broken
-						return fmt.Errorf(msg)
+						return fmt.Errorf("%s", msg)
 					}
 				}
 			}
