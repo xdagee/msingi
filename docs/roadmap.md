@@ -3,7 +3,7 @@
 ## Roadmap
 - [x] PowerShell 7 (Windows) — v3.6.0
 - [x] Bash (macOS / Linux) — v3.6.0
-- [ ] Go rewrite with Bubble Tea TUI — v1.0.0 (in progress)
+- [x] Go rewrite with Bubble Tea TUI — v4.1.0 (completed)
   - Single binary, zero runtime dependencies
   - Cross-platform via goreleaser
   - Full interactive TUI with live sidebar and resize support

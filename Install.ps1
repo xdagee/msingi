@@ -16,7 +16,7 @@
     Requires PowerShell 7.0 or later.
     Preserves CRLF line endings and single-column formatting.
 
-    Version: 4.0.0
+    Version: 4.1.0
 #>
 
 [CmdletBinding()]

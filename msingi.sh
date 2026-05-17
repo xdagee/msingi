@@ -8,7 +8,7 @@
 # ✨═══════════════════════════════════════════════════════════════════════════✨
 set -uo pipefail
 
-VERSION="4.0.0"
+VERSION="4.1.0"
 MAX_SKILLS=12
 DRY_RUN=0
 TARGET_PATH=""
