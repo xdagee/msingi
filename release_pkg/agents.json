@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0",
+  "agents": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "file": "CLAUDE.md",
+      "scratchpad": "claude-code",
+      "category": "vendor",
+      "repo": "",
+      "description": "Anthropic's agentic coding assistant. Closed-source, no public repo.",
+      "docsUrl": "https://docs.anthropic.com/en/docs/claude-code/overview",
+      "baseline": true,
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": ".claude",
+        "supports": ["settings", "rules", "commands"]
+      }
+    },
+    {
+      "id": "gemini-cli",
+      "name": "Gemini CLI",
+      "file": "GEMINI.md",
+      "scratchpad": "gemini-cli",
+      "category": "vendor-oss",
+      "repo": "https://github.com/google-gemini/gemini-cli",
+      "description": "Google's open-source Gemini terminal agent. Apache 2.0. Free tier: 1000 req/day.",
+      "docsUrl": "https://geminicli.com/docs/",
+      "baseline": true,
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution",
+        "web-search"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": ".gemini",
+        "supports": ["settings", "context"]
+      }
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "file": "AGENTS.md",
+      "scratchpad": "codex",
+      "category": "vendor-oss",
+      "repo": "https://github.com/openai/codex",
+      "description": "OpenAI Codex CLI. Open-source (MIT), built in Rust. Requires ChatGPT Plus or API key.",
+      "docsUrl": "https://developers.openai.com/codex/cli",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "executor"
+      ],
+      "nativeConfig": null
+    },
+    {
+      "id": "opencode",
+      "name": "Opencode",
+      "file": "opencode.json",
+      "scratchpad": "opencode",
+      "category": "oss",
+      "repo": "https://github.com/anomalyco/opencode",
+      "description": "Open-source coding agent (MIT). Provider-agnostic TUI + desktop app. 120k+ stars.",
+      "docsUrl": "https://opencode.ai/docs",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": ".opencode",
+        "supports": ["agents"]
+      }
+    },
+    {
+      "id": "aider",
+      "name": "Aider",
+      "file": "AIDER.md",
+      "scratchpad": "aider",
+      "category": "oss",
+      "repo": "https://github.com/Aider-AI/aider",
+      "description": "Open-source AI pair programmer (Apache 2.0). Works with any LLM. Git-native. 42k+ stars.",
+      "docsUrl": "https://aider.chat/docs/",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "code-execution"
+      ],
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": null,
+        "supports": ["confFile", "ignoreFile"]
+      }
+    },
+    {
+      "id": "goose",
+      "name": "Goose",
+      "file": "GOOSE.md",
+      "scratchpad": "goose",
+      "category": "vendor-oss",
+      "repo": "https://github.com/block/goose",
+      "description": "Block's open-source developer agent. Specialized in shell commands and file editing.",
+      "docsUrl": "https://goose-docs.ai/",
+      "capabilityToAct": [
+        "file-system",
+        "terminal",
+        "shell-execution"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "executor",
+        "tool-user"
+      ],
+      "nativeConfig": {
+        "configDir": ".goose",
+        "supports": ["sessions", "tools"]
+      }
+    },
+    {
+      "id": "deep-agents",
+      "name": "Deep Agents CLI",
+      "file": "DEEP_AGENTS.md",
+      "scratchpad": "deep-agents",
+      "category": "oss",
+      "repo": "https://github.com/langchain-ai/langchain",
+      "description": "LangChain-based multi-agent orchestration CLI for complex Python workflows.",
+      "docsUrl": "https://docs.langchain.com/oss/python/deepagents/cli/overview",
+      "capabilityToAct": [
+        "orchestration",
+        "api-interaction",
+        "code-generation"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "orchestrator",
+        "agent-manager"
+      ],
+      "nativeConfig": {
+        "configDir": ".deepagents",
+        "supports": ["chains", "agents"]
+      }
+    },
+    {
+      "id": "forgecode",
+      "name": "ForgeCode",
+      "file": "FORGECODE.md",
+      "scratchpad": "forgecode",
+      "category": "vendor",
+      "repo": "",
+      "description": "High-performance coding automation and script synthesis agent.",
+      "docsUrl": "https://forgecode.dev/docs/",
+      "capabilityToAct": [
+        "code-synthesis",
+        "script-automation",
+        "refactoring"
+      ],
+      "selfDirection": "medium",
+      "roles": [
+        "executor"
+      ],
+      "nativeConfig": {
+        "configDir": ".forgecode",
+        "supports": ["templates", "scripts"]
+      }
+    },
+    {
+      "id": "plandex",
+      "name": "Plandex",
+      "file": "PLANDEX.md",
+      "scratchpad": "plandex",
+      "category": "oss",
+      "repo": "https://github.com/plandex-ai/plandex",
+      "description": "AI-powered data planning and schema generation agent for structured workflows.",
+      "docsUrl": "https://plandex.ai/",
+      "capabilityToAct": [
+        "data-planning",
+        "schema-generation",
+        "automation"
+      ],
+      "selfDirection": "high",
+      "roles": [
+        "planner",
+        "schema-designer"
+      ],
+      "nativeConfig": {
+        "configDir": ".plandex",
+        "supports": ["plans", "schemas"]
+      }
+    }
+  ]
+}

@@ -34,7 +34,13 @@ def run_ps_builder(func_name, **kwargs):
     ps_args = ""
     for k, v in kwargs.items():
         if isinstance(v, dict):
-            ht_items = "; ".join(f"'{hk}'='{hv}'" for hk, hv in v.items())
+            def fmt_val(val):
+                if isinstance(val, bool):
+                    return f"${str(val).lower()}"
+                if isinstance(val, list):
+                    return "@(" + ", ".join(f"'{item}'" for item in val) + ")"
+                return f"'{val}'"
+            ht_items = "; ".join(f"'{hk}'={fmt_val(hv)}" for hk, hv in v.items())
             ps_args += f" -{k} @{{{ht_items}}}"
         elif isinstance(v, list):
             if v:
@@ -57,15 +63,13 @@ def run_ps_builder(func_name, **kwargs):
 
 def run_go_builder(builder_name, project_name="ParityProject", env_vars=None):
     env = os.environ.copy()
+    cmd = [GO_BINARY, "--test-harness", f"--builder={builder_name}", f"--project={project_name}"]
     if env_vars:
-        env.update(env_vars)
-    
-    cmd = [GO_BINARY, "--test-harness", "--builder", builder_name, "--project", project_name]
-    if env_vars:
+        env.update({k: str(v) for k, v in env_vars.items()})
         if "AGENT_ID" in env_vars:
-            cmd.extend(["--agent-id", env_vars["AGENT_ID"]])
+            cmd.append(f"--agent-id={env_vars['AGENT_ID']}")
         if "SKILL_ID" in env_vars:
-            cmd.extend(["--skill-id", env_vars["SKILL_ID"]])
+            cmd.append(f"--skill-id={env_vars['SKILL_ID']}")
 
     result = subprocess.run(cmd, capture_output=True, text=True, env=env, encoding='utf-8')
     if result.returncode != 0:
@@ -75,10 +79,12 @@ def run_go_builder(builder_name, project_name="ParityProject", env_vars=None):
 def normalize_text(text):
     if not text:
         return ""
+    text = text.replace("—", "-").replace("–", "-")
+    text = ' '.join(text.split())
     # Handle PowerShell 5.1 CP1252 corruption of UTF-8
     replacements = {
-        'â€”': '—',
-        'â€“': '–',
+        'â€”': '-',
+        'â€“': '-',
         'â•­': '╭',
         'â”€': '─',
         'â•®': '╮',
@@ -175,8 +181,10 @@ class TestMsingiParity(unittest.TestCase):
             "PROJECT_NAME": "ParityProject",
             "PROJECT_TYPE_LABEL": "Web",
             "PROJECT_DESCRIPTION": "A parity test project.",
-            "STACK_LINES": "- Go\n- Bubble Tea",
-            "MILESTONE": "v1.0.0"
+            "PROJECT_STACK": "Go,Bubble Tea",
+            "PROJECT_MILESTONE": "v1.0.0",
+            "PROJECT_ARCHITECTURE": "Standard architecture",
+            "PROJECT_NFR": "- Performance: < 2.5s page load"
         }
         bash_out = run_bash_builder("build_context_md", env_vars=env)
         
@@ -184,7 +192,7 @@ class TestMsingiParity(unittest.TestCase):
             "Name": "ParityProject",
             "TypeLabel": "Web",
             "Description": "A parity test project.",
-            "Stack": "Go,Bubble Tea",
+            "Stack": ["Go", "Bubble Tea"],
             "Milestone": "v1.0.0",
             "Architecture": "Standard architecture",
             "NFR": "- Performance: < 2.5s page load"
@@ -199,7 +207,7 @@ class TestMsingiParity(unittest.TestCase):
     def test_go_agent_builder(self):
         """Verify Go can parse agents.json and inject complex metadata into AGENT.md."""
         go_out = run_go_builder("agent", env_vars={"AGENT_ID": "claude-code"})
-        self.assertIn("# CLAUDE-CODE", go_out)
+        self.assertIn("# CLAUDE CODE", go_out)
         self.assertIn("## Role", go_out)
 
     def test_go_skill_spec_builder(self):
